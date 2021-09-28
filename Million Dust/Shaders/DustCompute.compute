@@ -1,0 +1,122 @@
+﻿
+#pragma kernel Populate
+#pragma kernel Update
+
+#define TRUE 1
+#define FALSE 0
+
+struct Dust
+{
+    float3 position;
+    int isAlive;
+};
+
+/*************************************************
+/*                     Variables
+/*************************************************/
+RWStructuredBuffer<Dust> dirtBuffer;
+RWStructuredBuffer<uint> aliveNumberBuffer; // 생존한 먼지 개수
+
+float deltaTime;
+
+float3 boundsMin; // 먼지 생성 영역 - 최소 지점
+float3 boundsMax; // 먼지 생성 영역 - 최대 지점
+
+float3 centerPos;    // 진공 청소기 입구 위치
+float sqrRange;      // 먼지 흡입 범위(반지름)
+float sqrDeathRange; // 먼지 소멸 범위(반지름)
+float sqrForce;
+
+float3 forward;     // 진공 청소기 전방 벡터
+float dotThreshold; // 진공 청소기 원뿔 영역 내적 범위
+
+/*************************************************
+/*                     Methods
+/*************************************************/
+float Random(float2 seed)
+{
+    return frac(sin(dot(seed, float2(73.867, 25.241))) * 39482.17593);
+}
+float RandomRange(float2 seed, float min, float max)
+{
+    return lerp(min, max, Random(seed)); 
+}
+float3 RandomRange3(float2 seed, float3 min, float3 max)
+{
+    float3 vec;
+    vec.x = RandomRange(seed, min.x, max.x);
+    vec.y = RandomRange(seed + 7.219, min.y, max.y);
+    vec.z = RandomRange(seed + 79.714, min.z, max.z);
+    return vec;
+}
+
+float SqrMagnitude(float3 vec)
+{
+    return (vec.x * vec.x) + (vec.y * vec.y) + (vec.z * vec.z);
+}
+
+// 먼지 파괴
+void DestroyDust(uint i)
+{
+    dirtBuffer[i].isAlive = FALSE;
+    InterlockedAdd(aliveNumberBuffer[0], -1);
+}
+
+/*************************************************
+/*                     Kernels
+/*************************************************/
+
+// 0 - 초기 생성
+[numthreads(64,1,1)]
+void Populate (uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x;
+
+    float width = boundsMax.x - boundsMin.x;
+    float f = float(i);
+    float2 uv = float2(f % width, f / width) / width;
+    
+    dirtBuffer[i].position = RandomRange3(uv, boundsMin, boundsMax);
+    dirtBuffer[i].isAlive = TRUE;
+}
+
+// 1 - 실시간 업데이트
+[numthreads(64,1,1)]
+void Update (uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x;
+    if(dirtBuffer[i].isAlive == FALSE) return;
+    
+    float3 pos = dirtBuffer[i].position;
+    float3 offs = (centerPos - pos);
+    float sqrDist = SqrMagnitude(offs);
+
+    // 입구 주변 - 먼지 소멸
+    if (sqrDist < sqrDeathRange)
+    {
+        DestroyDust(i);
+        return;
+    }
+
+    // 먼지 이동
+    if (sqrDist < sqrRange)
+    {
+        float3 dir = normalize(offs); // 먼지 -> 청소기 입구 방향
+        float dotValue = dot(forward, -dir);
+
+        // 원뿔 범위 내에 있을 경우 빨아들이기
+        if(dotValue > dotThreshold)
+        {
+            float weightedForce = sqrForce / sqrDist;
+            dirtBuffer[i].position += dir * weightedForce * dotValue;
+
+            // 청소기 뒤편으로 넘어가면 먼지 소멸
+            if(dot(centerPos - dirtBuffer[i].position, dir) < 0)
+                DestroyDust(i);
+        }
+    }
+    
+    // 중력
+    //float nextY = dirtBuffer[i].position.y - deltaTime * 50;
+    //dirtBuffer[i].position.y = max(0, nextY);
+}
