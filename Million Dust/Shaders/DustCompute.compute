@@ -14,7 +14,7 @@ struct Dust
 /*************************************************
 /*                     Variables
 /*************************************************/
-RWStructuredBuffer<Dust> dirtBuffer;
+RWStructuredBuffer<Dust> dustBuffer;
 RWStructuredBuffer<uint> aliveNumberBuffer; // 생존한 먼지 개수
 
 float deltaTime;
@@ -58,7 +58,7 @@ float SqrMagnitude(float3 vec)
 // 먼지 파괴
 void DestroyDust(uint i)
 {
-    dirtBuffer[i].isAlive = FALSE;
+    dustBuffer[i].isAlive = FALSE;
     InterlockedAdd(aliveNumberBuffer[0], -1);
 }
 
@@ -76,8 +76,8 @@ void Populate (uint3 id : SV_DispatchThreadID)
     float f = float(i);
     float2 uv = float2(f % width, f / width) / width;
     
-    dirtBuffer[i].position = RandomRange3(uv, boundsMin, boundsMax);
-    dirtBuffer[i].isAlive = TRUE;
+    dustBuffer[i].position = RandomRange3(uv, boundsMin, boundsMax);
+    dustBuffer[i].isAlive = TRUE;
 }
 
 // 1 - 실시간 업데이트
@@ -85,9 +85,9 @@ void Populate (uint3 id : SV_DispatchThreadID)
 void Update (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
-    if(dirtBuffer[i].isAlive == FALSE) return;
+    if(dustBuffer[i].isAlive == FALSE) return;
     
-    float3 pos = dirtBuffer[i].position;
+    float3 pos = dustBuffer[i].position;
     float3 offs = (centerPos - pos);
     float sqrDist = SqrMagnitude(offs);
 
@@ -108,15 +108,15 @@ void Update (uint3 id : SV_DispatchThreadID)
         if(dotValue > dotThreshold)
         {
             float weightedForce = sqrForce / sqrDist;
-            dirtBuffer[i].position += dir * weightedForce * dotValue;
+            dustBuffer[i].position += dir * weightedForce * dotValue;
 
             // 청소기 뒤편으로 넘어가면 먼지 소멸
-            if(dot(centerPos - dirtBuffer[i].position, dir) < 0)
+            if(dot(centerPos - dustBuffer[i].position, dir) < 0)
                 DestroyDust(i);
         }
     }
     
     // 중력
-    //float nextY = dirtBuffer[i].position.y - deltaTime * 50;
-    //dirtBuffer[i].position.y = max(0, nextY);
+    //float nextY = dustBuffer[i].position.y - deltaTime * 50;
+    //dustBuffer[i].position.y = max(0, nextY);
 }

@@ -793,14 +793,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 64442c8b355ce0b42ad92d7b3c802e81, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dirtMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
-  dirtMaterial: {fileID: 2100000, guid: 580e99519544d7049bc9d6a36bb4e96b, type: 2}
+  dustMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  dustMaterial: {fileID: 2100000, guid: 580e99519544d7049bc9d6a36bb4e96b, type: 2}
   cleanerHead: {fileID: 697987789}
   instanceNumber: 1000000
   distributionRange: 100
   distributionHeight: 100
-  dirtScale: 0.1
-  dirtCompute: {fileID: 7200000, guid: a725fe981ed6cbf45a47ee3e356c76dc, type: 3}
+  dustScale: 0.2
+  dustCompute: {fileID: 7200000, guid: a725fe981ed6cbf45a47ee3e356c76dc, type: 3}
 --- !u!4 &1936900217
 Transform:
   m_ObjectHideFlags: 0
