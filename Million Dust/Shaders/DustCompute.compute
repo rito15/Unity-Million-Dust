@@ -151,8 +151,7 @@ void Update (uint3 id : SV_DispatchThreadID)
     // ===================================================
     //              이동 시뮬레이션, 충돌 검사
     // ===================================================
-    // 다음 프레임 위치 계산
-    // float3 currPos = dustBuffer[i].position;
+    // 다음 프레임 위치 계산 : S = S0 + V * t
     float3 nextPos = currPos + velocityBuffer[i] * deltaTime;
 
     // 교차 지점에서 충돌 검사

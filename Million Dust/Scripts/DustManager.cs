@@ -45,9 +45,10 @@ public class DustManager : MonoBehaviour
 
     [Space]
     [SerializeField] private ComputeShader dustCompute;
-    private ComputeBuffer dustBuffer; // 먼지 데이터 버퍼(위치, ...)
-    private ComputeBuffer argsBuffer; // 먼지 렌더링 데이터 버퍼
-    private ComputeBuffer aliveNumberBuffer; // 생존 먼지 개수 RW
+    private ComputeBuffer dustBuffer;         // 먼지 데이터 버퍼(위치, ...)
+    private ComputeBuffer dustVelocityBuffer; // 먼지 현재 속도 버퍼
+    private ComputeBuffer argsBuffer;         // 먼지 렌더링 데이터 버퍼
+    private ComputeBuffer aliveNumberBuffer;  // 생존 먼지 개수 버퍼
 
     private Bounds frustumOverlapBounds;
 
@@ -66,8 +67,9 @@ public class DustManager : MonoBehaviour
     #region .
     private void Start()
     {
+        Init();
         InitBuffers();
-        InitComputeShader();
+        SetBuffersToShaders();
         PopulateDusts();
     }
 
@@ -84,6 +86,7 @@ public class DustManager : MonoBehaviour
         dustBuffer.Release();
         argsBuffer.Release();
         aliveNumberBuffer.Release();
+        dustVelocityBuffer.Release();
     }
 
     private GUIStyle boxStyle;
@@ -106,21 +109,37 @@ public class DustManager : MonoBehaviour
     *                               Init Methods
     ***********************************************************************/
     #region .
+    private void Init()
+    {
+        aliveNumber = instanceNumber;
+
+        kernelPopulateID = dustCompute.FindKernel("Populate");
+        kernelUpdateID = dustCompute.FindKernel("Update");
+
+        dustCompute.GetKernelThreadGroupSizes(kernelUpdateID, out uint tx, out _, out _);
+        kernelUpdateGroupSizeX = Mathf.CeilToInt((float)instanceNumber / tx);
+    }
+
     /// <summary> 컴퓨트 버퍼들 생성 </summary>
     private void InitBuffers()
     {
-        // Args Buffer
-        // IndirectArguments로 사용되는 컴퓨트 버퍼의 stride는 20byte 이상이어야 한다.
-        // 따라서 파라미터가 앞의 2개만 필요하지만, 뒤에 의미 없는 파라미터 3개를 더 넣어준다.
-        uint[] argsData = new uint[] { (uint)dustMesh.GetIndexCount(0), (uint)instanceNumber, 0, 0, 0 };
-        aliveNumber = instanceNumber;
+        /* [Note]
+         * 
+         * argsBuffer
+         * - IndirectArguments로 사용되는 컴퓨트 버퍼의 stride는 20byte 이상이어야 한다.
+         * - 따라서 파라미터가 앞의 2개만 필요하지만, 뒤에 의미 없는 파라미터 3개를 더 넣어준다.
+         */
 
+        // Args Buffer
+        uint[] argsData = new uint[] { dustMesh.GetIndexCount(0), (uint)instanceNumber, 0, 0, 0 };
         argsBuffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
         argsBuffer.SetData(argsData);
 
         // Dust Buffer
         dustBuffer = new ComputeBuffer(instanceNumber, sizeof(float) * 3 + sizeof(int));
-        dustMaterial.SetBuffer("_DustBuffer", dustBuffer);
+
+        // Dust Velocity Buffer
+        dustVelocityBuffer = new ComputeBuffer(instanceNumber, sizeof(float) * 3);
 
         // Alive Number Buffer
         aliveNumberBuffer = new ComputeBuffer(1, sizeof(uint));
@@ -133,22 +152,14 @@ public class DustManager : MonoBehaviour
             new Vector3(distributionRange, distributionHeight, distributionRange));
     }
 
-    /// <summary> 컴퓨트 쉐이더 초기화 </summary>
-    private void InitComputeShader()
+    /// <summary> 컴퓨트 버퍼들을 쉐이더에 할당 </summary>
+    private void SetBuffersToShaders()
     {
-        kernelPopulateID = dustCompute.FindKernel("Populate");
-        kernelUpdateID   = dustCompute.FindKernel("Update");
-
+        dustMaterial.SetBuffer("_DustBuffer", dustBuffer);
         dustCompute.SetBuffer(kernelPopulateID, "dustBuffer", dustBuffer);
         dustCompute.SetBuffer(kernelUpdateID, "dustBuffer", dustBuffer);
         dustCompute.SetBuffer(kernelUpdateID, "aliveNumberBuffer", aliveNumberBuffer);
-
-        // Dust Velocity Buffer
-        ComputeBuffer velocityBuffer = new ComputeBuffer(instanceNumber, sizeof(float) * 3);
-        dustCompute.SetBuffer(kernelUpdateID, "velocityBuffer", velocityBuffer);
-
-        dustCompute.GetKernelThreadGroupSizes(kernelUpdateID, out uint tx, out _, out _);
-        kernelUpdateGroupSizeX = Mathf.CeilToInt((float)instanceNumber / tx);
+        dustCompute.SetBuffer(kernelUpdateID, "velocityBuffer", dustVelocityBuffer);
     }
 
     /// <summary> 먼지들을 영역 내의 무작위 위치에 생성한다. </summary>
