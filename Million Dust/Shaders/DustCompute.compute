@@ -2,6 +2,14 @@
 #pragma kernel Populate
 #pragma kernel Update
 
+/*************************************************
+/*                 Naming Conventions
+/*************************************************/
+// AToB : B - A
+// ~Dir : 방향 벡터(크기 1)
+// ~Dist : 두 위치 벡터 사이의 거리(스칼라)
+// ~Len : 한 벡터의 길이
+
 #define TRUE 1
 #define FALSE 0
 
@@ -14,21 +22,27 @@ struct Dust
 /*************************************************
 /*                     Variables
 /*************************************************/
-RWStructuredBuffer<Dust> dustBuffer;
+RWStructuredBuffer<Dust> dustBuffer;        // 먼지 위치, 생존 여부
+RWStructuredBuffer<float3> velocityBuffer;  // 먼지 속도
 RWStructuredBuffer<uint> aliveNumberBuffer; // 생존한 먼지 개수
 
+int isRunning;    // 청소기 가동 여부
 float deltaTime;
 
 float3 boundsMin; // 먼지 생성 영역 - 최소 지점
 float3 boundsMax; // 먼지 생성 영역 - 최대 지점
 
-float3 centerPos;    // 진공 청소기 입구 위치
-float sqrRange;      // 먼지 흡입 범위(반지름)
-float sqrDeathRange; // 먼지 소멸 범위(반지름)
-float sqrForce;
+float3 headPos;      // 진공 청소기 입구 위치
+float sqrRange;      // 먼지 흡입 범위(반지름) - 제곱
+float sqrDeathRange; // 먼지 소멸 범위(반지름) - 제곱
+float sqrForce;      // 빨아들이는 힘 - 제곱
 
-float3 forward;     // 진공 청소기 전방 벡터
-float dotThreshold; // 진공 청소기 원뿔 영역 내적 범위
+float3 headForwardDir; // 진공 청소기 전방 벡터
+float dotThreshold;    // 진공 청소기 원뿔 영역 내적 범위
+
+float mass;          // 질량
+float gravityForce;  // -Y 방향 중력 강도
+float airResistance; // 공기 저항력
 
 /*************************************************
 /*                     Methods
@@ -86,37 +100,85 @@ void Update (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
     if(dustBuffer[i].isAlive == FALSE) return;
-    
-    float3 pos = dustBuffer[i].position;
-    float3 offs = (centerPos - pos);
-    float sqrDist = SqrMagnitude(offs);
 
-    // 입구 주변 - 먼지 소멸
-    if (sqrDist < sqrDeathRange)
-    {
-        DestroyDust(i);
-        return;
-    }
+    bool sucking = false;
+    float3 F = 0; // 힘 합 벡터
+    float3 A = 0; // 가속도 합 벡터
+    
+    // ===================================================
+    //                  청소기로 먼지 흡수
+    // ===================================================
+    float3 currPos = dustBuffer[i].position;  // 현재 프레임 먼지 위치
+    float3 currToHead = (headPos - currPos);  // 청소기 입구 -> 먼지
+    float sqrDist = SqrMagnitude(currToHead); // 청소기 입구 <-> 먼지 사이 거리 제곱
 
     // 먼지 이동
-    if (sqrDist < sqrRange)
+    if (isRunning == TRUE && sqrDist < sqrRange)
     {
-        float3 dir = normalize(offs); // 먼지 -> 청소기 입구 방향
-        float dotValue = dot(forward, -dir);
+        float3 dustToHeadDir = normalize(currToHead); // 먼지 -> 청소기 입구 방향
+        float dotValue = dot(headForwardDir, -dustToHeadDir);
 
         // 원뿔 범위 내에 있을 경우 빨아들이기
         if(dotValue > dotThreshold)
         {
-            float weightedForce = sqrForce / sqrDist;
-            dustBuffer[i].position += dir * weightedForce * dotValue;
+            float suctionForce = sqrForce / sqrDist;
 
-            // 청소기 뒤편으로 넘어가면 먼지 소멸
-            if(dot(centerPos - dustBuffer[i].position, dir) < 0)
-                DestroyDust(i);
+            // 빨아들이는 힘
+            F += dustToHeadDir * suctionForce * dotValue;
+
+            sucking = true;
         }
     }
     
-    // 중력
-    //float nextY = dustBuffer[i].position.y - deltaTime * 50;
-    //dustBuffer[i].position.y = max(0, nextY);
+    // F = m * a
+    // v = a * t
+
+    // ===================================================
+    //                    가속도 계산
+    // ===================================================
+    // [1] 외력
+    A += F / mass;
+
+    // [2] 중력
+    A += float3(0, -gravityForce, 0);
+
+    // [3] 공기 저항
+    A -= velocityBuffer[i] * airResistance;
+
+    // 속도 적용 : V = A * t
+    velocityBuffer[i] += A * deltaTime;
+    
+    // ===================================================
+    //              이동 시뮬레이션, 충돌 검사
+    // ===================================================
+    // 다음 프레임 위치 계산
+    // float3 currPos = dustBuffer[i].position;
+    float3 nextPos = currPos + velocityBuffer[i] * deltaTime;
+
+    // 교차 지점에서 충돌 검사
+    // [1] Plane (Y = 0)
+    nextPos.y = max(0, nextPos.y);
+
+    // [2] 입구로 완전히 빨아들인 경우, 먼지 파괴
+    if(sucking)
+    {
+        float3 headToNext = nextPos - headPos;
+
+        float3 headToCurrDir = normalize(-currToHead);
+        float3 headToNextDir = normalize(headToNext);
+
+        // 현재 프레임에 먼지가 원뿔 범위 내에 있었다면
+        if(dot(headForwardDir, headToCurrDir) > dotThreshold)
+        {
+            // 다음 프레임에 원뿔 밖으로 나가거나 입구에 근접하면 파괴
+            if(dot(headForwardDir, headToNextDir) < dotThreshold ||
+               SqrMagnitude(headToNext) < sqrDeathRange)
+            {
+                DestroyDust(i);
+            }
+        }
+    }
+    
+    // 다음 위치 적용
+    dustBuffer[i].position = nextPos;
 }

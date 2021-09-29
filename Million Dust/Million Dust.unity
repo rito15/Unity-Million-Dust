@@ -149,7 +149,7 @@ Transform:
   m_GameObject: {fileID: 345767763}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_Children: []
   m_Father: {fileID: 999038417}
   m_RootOrder: 2
@@ -306,6 +306,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 697987788}
+  - component: {fileID: 697987790}
   - component: {fileID: 697987789}
   m_Layer: 0
   m_Name: Vacuum Cleaner Head
@@ -341,11 +342,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   run: 0
-  suctionForce: 100
-  suctionRange: 40
-  suctionAngle: 30
-  deathRange: 1
-  moveSpeed: 50
+  suctionForce: 50
+  suctionRange: 10
+  suctionAngle: 60
+  deathRange: 2
+  moveSpeed: 5
+--- !u!114 &697987790
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 697987787}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d156cd2424b5b2458a9fbce89c479cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _alwaysOnTop: 1
+  _activated: 1
+  _targetList: []
 --- !u!1 &803335356
 GameObject:
   m_ObjectHideFlags: 0
@@ -547,7 +563,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 999038416}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 7.6, z: 0}
+  m_LocalPosition: {x: 0, y: 5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 697987788}
@@ -675,7 +691,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1617468236}
   m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
-  m_LocalPosition: {x: 0, y: 3, z: 0}
+  m_LocalPosition: {x: 0, y: 25, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -707,7 +723,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1662239500}
   m_LocalRotation: {x: 0.19595395, y: -0, z: -0, w: 0.9806131}
-  m_LocalPosition: {x: 0, y: 7.3, z: -12.8}
+  m_LocalPosition: {x: 0, y: 7.3, z: -15}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 999038417}
@@ -773,6 +789,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1936900217}
+  - component: {fileID: 1936900218}
   - component: {fileID: 1936900216}
   m_Layer: 0
   m_Name: Dust Manager
@@ -796,10 +813,13 @@ MonoBehaviour:
   dustMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
   dustMaterial: {fileID: 2100000, guid: 580e99519544d7049bc9d6a36bb4e96b, type: 2}
   cleanerHead: {fileID: 697987789}
-  instanceNumber: 1000000
+  instanceNumber: 300000
   distributionRange: 100
-  distributionHeight: 100
+  distributionHeight: 10
   dustScale: 0.2
+  mass: 1
+  gravityForce: 9.8
+  airResistance: 1
   dustCompute: {fileID: 7200000, guid: a725fe981ed6cbf45a47ee3e356c76dc, type: 3}
 --- !u!4 &1936900217
 Transform:
@@ -815,6 +835,21 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1936900218
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1936900215}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d156cd2424b5b2458a9fbce89c479cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _alwaysOnTop: 1
+  _activated: 1
+  _targetList: []
 --- !u!1 &2138031400
 GameObject:
   m_ObjectHideFlags: 0

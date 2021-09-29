@@ -28,12 +28,20 @@ public class DustManager : MonoBehaviour
     [Header("Vacuum Cleaner Options")]
     [SerializeField] private VacuumCleanerHead cleanerHead; // 진공 청소기 흡입부
 
-    [Space]
+    [Header("Dust Option")]
     [SerializeField] private int instanceNumber = 100000;    // 생성할 먼지 개수
     [SerializeField] private float distributionRange = 100f; // 먼지 분포 범위(정사각형 너비)
     [SerializeField] private float distributionHeight = 5f;  // 먼지 분포 높이
     [Range(0.01f, 2f)]
     [SerializeField] private float dustScale = 1f;           // 먼지 크기
+
+    [Header("Physics Options")]
+    [Range(0f, 20f)]
+    [SerializeField] private float mass = 1f;           // 먼지 질량
+    [Range(0f, 20f)]
+    [SerializeField] private float gravityForce = 9.8f; // 중력 강도
+    [Range(0f, 100f)]
+    [SerializeField] private float airResistance = 10f; // 공기 저항력
 
     [Space]
     [SerializeField] private ComputeShader dustCompute;
@@ -135,6 +143,10 @@ public class DustManager : MonoBehaviour
         dustCompute.SetBuffer(kernelUpdateID, "dustBuffer", dustBuffer);
         dustCompute.SetBuffer(kernelUpdateID, "aliveNumberBuffer", aliveNumberBuffer);
 
+        // Dust Velocity Buffer
+        ComputeBuffer velocityBuffer = new ComputeBuffer(instanceNumber, sizeof(float) * 3);
+        dustCompute.SetBuffer(kernelUpdateID, "velocityBuffer", velocityBuffer);
+
         dustCompute.GetKernelThreadGroupSizes(kernelUpdateID, out uint tx, out _, out _);
         kernelUpdateGroupSizeX = Mathf.CeilToInt((float)instanceNumber / tx);
     }
@@ -163,24 +175,29 @@ public class DustManager : MonoBehaviour
     #region .
     private void UpdateDustPositionsGPU()
     {
-        if (cleanerHead.Running == false) return;
         ref var head = ref cleanerHead;
 
-        Vector3 centerPos = head.Position;
+        Vector3 headPos = head.Position;
         float sqrRange = head.SqrSuctionRange;
         float sqrDeathRange = head.DeathRange * head.DeathRange;
-        float sqrForce = deltaTime * head.SuctionForce * head.SuctionForce;
+        float sqrForce      = head.SuctionForce * head.SuctionForce;
 
+        dustCompute.SetInt("isRunning", head.Running ? TRUE : FALSE);
         dustCompute.SetFloat("deltaTime", deltaTime);
 
-        dustCompute.SetVector("centerPos", centerPos);
+        dustCompute.SetVector("headPos", headPos);
         dustCompute.SetFloat("sqrRange", sqrRange);
         dustCompute.SetFloat("sqrDeathRange", sqrDeathRange);
         dustCompute.SetFloat("sqrForce", sqrForce);
 
         // 원뿔
-        dustCompute.SetVector("forward", head.Forward);
+        dustCompute.SetVector("headForwardDir", head.Forward);
         dustCompute.SetFloat("dotThreshold", Mathf.Cos(head.SuctionAngleRad));
+
+        // 물리
+        dustCompute.SetFloat("mass", mass);
+        dustCompute.SetFloat("gravityForce", gravityForce);
+        dustCompute.SetFloat("airResistance", airResistance);
 
         dustCompute.Dispatch(kernelUpdateID, kernelUpdateGroupSizeX, 1, 1);
 

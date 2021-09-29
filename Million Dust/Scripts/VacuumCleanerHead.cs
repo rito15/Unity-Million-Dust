@@ -13,8 +13,8 @@ public class VacuumCleanerHead : MonoBehaviour
 {
     [SerializeField] private bool run = true;
 
-    [Range(0f, 100f), Tooltip("빨아들이는 힘")]
-    [SerializeField] private float suctionForce = 1f;
+    [Range(0f, 200f), Tooltip("빨아들이는 힘")]
+    [SerializeField] private float suctionForce = 50f;
 
     [Range(1f, 50f), Tooltip("빨아들이는 범위(거리)")]
     [SerializeField] private float suctionRange = 5f;
