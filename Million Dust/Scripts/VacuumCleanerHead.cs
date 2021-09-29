@@ -11,7 +11,7 @@ using System;
 /// </summary>
 public class VacuumCleanerHead : MonoBehaviour
 {
-    [SerializeField] private bool run = true;
+    [SerializeField] private bool isRunning = true;
 
     [Range(0f, 200f), Tooltip("빨아들이는 힘")]
     [SerializeField] private float suctionForce = 50f;
@@ -32,7 +32,7 @@ public class VacuumCleanerHead : MonoBehaviour
     private float deltaTime;
     private bool mouseLocked = false;
 
-    public bool Running => run;
+    public bool IsRunning => isRunning;
     public float SqrSuctionRange => suctionRange * suctionRange;
     public float SuctionForce => suctionForce;
     public float DeathRange => deathRange;
@@ -71,7 +71,7 @@ public class VacuumCleanerHead : MonoBehaviour
     private void MouseControl()
     {
         // On/Off
-        run = Input.GetMouseButton(0);
+        isRunning = Input.GetMouseButton(0);
 
         // 마우스 보이기/숨기기
         if (Input.GetMouseButtonDown(1))

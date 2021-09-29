@@ -41,7 +41,7 @@ public class DustManager : MonoBehaviour
     [Range(0f, 20f)]
     [SerializeField] private float gravityForce = 9.8f; // 중력 강도
     [Range(0f, 100f)]
-    [SerializeField] private float airResistance = 10f; // 공기 저항력
+    [SerializeField] private float airResistance = 1f;  // 공기 저항력
 
     [Space]
     [SerializeField] private ComputeShader dustCompute;
@@ -149,7 +149,8 @@ public class DustManager : MonoBehaviour
         // 카메라 프러스텀이 이 영역과 겹치지 않으면 렌더링되지 않는다.
         frustumOverlapBounds = new Bounds(
             Vector3.zero, 
-            new Vector3(distributionRange, distributionHeight, distributionRange));
+            new Vector3(distributionRange, distributionHeight, distributionRange)
+        );
     }
 
     /// <summary> 컴퓨트 버퍼들을 쉐이더에 할당 </summary>
@@ -193,7 +194,7 @@ public class DustManager : MonoBehaviour
         float sqrDeathRange = head.DeathRange * head.DeathRange;
         float sqrForce      = head.SuctionForce * head.SuctionForce;
 
-        dustCompute.SetInt("isRunning", head.Running ? TRUE : FALSE);
+        dustCompute.SetInt("isRunning", head.IsRunning ? TRUE : FALSE);
         dustCompute.SetFloat("deltaTime", deltaTime);
 
         dustCompute.SetVector("headPos", headPos);
