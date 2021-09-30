@@ -102,7 +102,7 @@ public class DustManager : MonoBehaviour
         float scHeight = Screen.height;
         Rect r = new Rect(scWidth * 0.04f, scHeight * 0.04f, scWidth * 0.25f, scHeight * 0.05f);
 
-        GUI.Box(r, $"{aliveNumber:#,###,###} / {instanceNumber:#,###,###}", boxStyle);
+        GUI.Box(r, $"{aliveNumber:#,###,##0} / {instanceNumber:#,###,##0}", boxStyle);
     }
     #endregion
     /***********************************************************************

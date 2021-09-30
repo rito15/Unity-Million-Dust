@@ -7,7 +7,11 @@
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
+        Tags { "Queue"="Geometry" "RenderType"="Transparent" "IgnoreProjector"="True" }
+        ZWrite Off
+		Lighting Off
+        Fog { Mode Off }
+        Blend SrcAlpha OneMinusSrcAlpha 
 
         Pass
         {
@@ -21,9 +25,9 @@
 
             struct v2f
             {
-                float4 pos : SV_POSITION;
-                float3 normal : TEXCOORD0;
-                int isAlive : TEXCOORD1;
+                float4 pos    : SV_POSITION;
+                float3 uv     : TEXCOORD0;
+                int isAlive   : TEXCOORD1;
             };
 
             struct Dust
@@ -35,21 +39,29 @@
             uniform float _Scale;
             StructuredBuffer<Dust> _DustBuffer;
 
+            float4 CalculatePosition(float4 vertex, float3 worldPos)
+            {
+                float3 camUpVec      =  normalize( UNITY_MATRIX_V._m10_m11_m12 );
+			    float3 camForwardVec = -normalize( UNITY_MATRIX_V._m20_m21_m22 );
+			    float3 camRightVec   =  normalize( UNITY_MATRIX_V._m00_m01_m02 );
+			    float4x4 camRotMat   = float4x4( camRightVec, 0, camUpVec, 0, camForwardVec, 0, 0, 0, 0, 1 );
+
+                vertex = mul(vertex, camRotMat); // Billboard
+                vertex.xyz *= _Scale;   // Scale
+                vertex.xyz += worldPos; // Instance Position
+
+                // World => VP => Clip
+                return mul(UNITY_MATRIX_VP, vertex);
+            }
+
             v2f vert (appdata_full v, uint instanceID : SV_InstanceID)
             {
                 v2f o;
-                // 먼지 생존 여부 받아와서 프래그먼트 쉐이더에 전달
+
                 o.isAlive = _DustBuffer[instanceID].isAlive;
+                o.pos = CalculatePosition(v.vertex, _DustBuffer[instanceID].position);
+                o.uv = v.texcoord;
 
-                // 먼지 크기 결정
-                v.vertex *= _Scale; 
-
-                // 먼지 위치 결정
-                float3 instancePos = _DustBuffer[instanceID].position;
-                float3 worldPos = v.vertex + instancePos;
-
-                o.pos = mul(UNITY_MATRIX_VP, float4(worldPos, 1));
-                o.normal = v.normal;
                 return o;
             }
 
