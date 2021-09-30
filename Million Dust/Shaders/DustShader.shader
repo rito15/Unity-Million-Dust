@@ -2,7 +2,7 @@
 {
     Properties
     {
-        //_MainTex ("Texture", 2D) = "white" {}
+        _MainTex ("Texture", 2D) = "white" {}
         _Color("Color", Color) = (0.2, 0.2, 0.2, 1)
     }
     SubShader
@@ -36,10 +36,13 @@
                 int isAlive;
             };
 
+            // ========================================================================================
+            //                                  Vertex Shader
+            // ========================================================================================
             uniform float _Scale;
             StructuredBuffer<Dust> _DustBuffer;
 
-            float4 CalculatePosition(float4 vertex, float3 worldPos)
+            float4 CalculateVertex(float4 vertex, float3 worldPos)
             {
                 float3 camUpVec      =  normalize( UNITY_MATRIX_V._m10_m11_m12 );
 			    float3 camForwardVec = -normalize( UNITY_MATRIX_V._m20_m21_m22 );
@@ -59,12 +62,16 @@
                 v2f o;
 
                 o.isAlive = _DustBuffer[instanceID].isAlive;
-                o.pos = CalculatePosition(v.vertex, _DustBuffer[instanceID].position);
+                o.pos = CalculateVertex(v.vertex, _DustBuffer[instanceID].position);
                 o.uv = v.texcoord;
 
                 return o;
             }
-
+            
+            // ========================================================================================
+            //                                  Fragment Shader
+            // ========================================================================================
+            sampler2D _MainTex;
             fixed4 _Color;
 
             fixed4 frag (v2f i) : SV_Target
@@ -75,7 +82,10 @@
                     discard;
                 }
 
-                return _Color;
+                fixed4 col = tex2D(_MainTex, i.uv);
+                col.rgb = _Color.rgb * col.a;
+
+                return col;
             }
             ENDCG
         }
