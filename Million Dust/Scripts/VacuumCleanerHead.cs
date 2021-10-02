@@ -69,6 +69,7 @@ public class VacuumCleanerHead : MonoBehaviour
     [Space]
     [SerializeField] private Material coneMaterial;
 
+    /// <summary> 자식 게임오브젝트 생성하여 메시 렌더러, 필터 추가 </summary>
     private void CreateChildCone()
     {
         GameObject go = new GameObject("Cone Mesh");
@@ -84,6 +85,7 @@ public class VacuumCleanerHead : MonoBehaviour
         mf.sharedMesh = CreateConeMesh();
     }
 
+    /// <summary> 원뿔 모양 메시 생성 </summary>
     private Mesh CreateConeMesh(int sample = 24)
     {
         Mesh mesh = new Mesh();
@@ -118,6 +120,7 @@ public class VacuumCleanerHead : MonoBehaviour
         return mesh;
     }
 
+    /// <summary> 옵션 변경에 따라 자식 스케일 변경 </summary>
     private void ChangeConeScale()
     {
         float r = Mathf.Tan(suctionAngle * Mathf.Deg2Rad) * suctionRange * 0.5f;

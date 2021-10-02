@@ -57,6 +57,7 @@ public class DustManager : MonoBehaviour
 
     private int kernelPopulateID;
     private int kernelUpdateID;
+    private int kernelBlowID;
     private int kernelUpdateGroupSizeX;
 
     private float deltaTime;
@@ -80,6 +81,9 @@ public class DustManager : MonoBehaviour
 
         dustMaterial.SetFloat("_Scale", dustScale);
         Graphics.DrawMeshInstancedIndirect(dustMesh, 0, dustMaterial, frustumOverlapBounds, argsBuffer);
+
+        if (Input.GetMouseButton(2))
+            BlowDusts();
     }
     private void OnDestroy()
     {
@@ -115,9 +119,12 @@ public class DustManager : MonoBehaviour
 
         kernelPopulateID = dustCompute.FindKernel("Populate");
         kernelUpdateID = dustCompute.FindKernel("Update");
+        kernelBlowID = dustCompute.FindKernel("Blow");
 
         dustCompute.GetKernelThreadGroupSizes(kernelUpdateID, out uint tx, out _, out _);
         kernelUpdateGroupSizeX = Mathf.CeilToInt((float)instanceNumber / tx);
+
+        dustCompute.SetInt("maxNumber", instanceNumber);
     }
 
     /// <summary> 컴퓨트 버퍼들 생성 </summary>
@@ -158,9 +165,14 @@ public class DustManager : MonoBehaviour
     {
         dustMaterial.SetBuffer("_DustBuffer", dustBuffer);
         dustCompute.SetBuffer(kernelPopulateID, "dustBuffer", dustBuffer);
+
         dustCompute.SetBuffer(kernelUpdateID, "dustBuffer", dustBuffer);
         dustCompute.SetBuffer(kernelUpdateID, "aliveNumberBuffer", aliveNumberBuffer);
         dustCompute.SetBuffer(kernelUpdateID, "velocityBuffer", dustVelocityBuffer);
+
+        dustCompute.SetBuffer(kernelBlowID, "dustBuffer", dustBuffer);
+        dustCompute.SetBuffer(kernelBlowID, "aliveNumberBuffer", aliveNumberBuffer);
+        dustCompute.SetBuffer(kernelBlowID, "velocityBuffer", dustVelocityBuffer);
     }
 
     /// <summary> 먼지들을 영역 내의 무작위 위치에 생성한다. </summary>
@@ -217,21 +229,13 @@ public class DustManager : MonoBehaviour
         aliveNumberBuffer.GetData(aliveNumberArray);
         aliveNumber = (int)aliveNumberArray[0];
     }
-    #endregion
 
-
-    void Test()
+    private void BlowDusts()
     {
-        Vector3 A = new Vector3(3, 5, 0);
-        Vector3 B = new Vector3(2, -4, 1);
-        Vector3 S = new Vector3(1, 1, 1);
-
-        Vector3 nAB = (B - A).normalized;
-        Vector3 AS = S - A;
-
-        float k = Vector3.Dot(AS, nAB);
-        Vector3 C = A + (k * nAB);
-
-
+        dustCompute.SetFloat("randomSeed", Time.time);
+        dustCompute.SetFloat("blowForce", cleanerHead.SuctionForce);
+        dustCompute.SetMatrix("headMatrix", cleanerHead.transform.localToWorldMatrix);
+        dustCompute.Dispatch(kernelBlowID, kernelUpdateGroupSizeX, 1, 1);
     }
+    #endregion
 }

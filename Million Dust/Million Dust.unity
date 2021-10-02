@@ -437,7 +437,7 @@ MonoBehaviour:
   isRunning: 0
   suctionForce: 50
   suctionRange: 10
-  suctionAngle: 60
+  suctionAngle: 45
   deathRange: 2
   moveSpeed: 5
   coneMaterial: {fileID: 2100000, guid: 367b14cad09159d42aaa2db0961281b5, type: 2}

@@ -1,6 +1,7 @@
 ﻿
 #pragma kernel Populate
 #pragma kernel Update
+#pragma kernel Blow
 
 /*************************************************
  *                 Naming Conventions
@@ -202,4 +203,38 @@ void Update (uint3 id : SV_DispatchThreadID)
     
     // 다음 위치 적용
     dustBuffer[i].position = nextPos;
+}
+
+int maxNumber;
+float randomSeed;
+float blowForce;
+float4x4 headMatrix;
+
+// 2 - 죽었던 먼지들 살려서 발사
+[numthreads(64,1,1)]
+void Blow (uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x;
+    if(dustBuffer[i].isAlive == TRUE) return;
+    if(i >= maxNumber) return;
+
+    // 확률 계산
+    float k = i + randomSeed;
+    float2 seed = float2(k % 64, k / 64) / 64;
+    float r = Random(seed);
+    if(r > 0.01) return;
+
+    // 스프레이.. 제대로 구현....
+
+    float3 randomDir = RandomRange3(seed, -1, 1);
+
+    float3 localDir = normalize(randomDir) * 0.5 + float3(0, 0, 1);
+    float3 worldDir = mul(headMatrix, localDir);
+    
+    dustBuffer[i].position = headPos;
+    velocityBuffer[i] = (worldDir) * blowForce;
+
+    // 먼지 개수 추가
+    dustBuffer[i].isAlive = TRUE;
+    InterlockedAdd(aliveNumberBuffer[0], 1);
 }
