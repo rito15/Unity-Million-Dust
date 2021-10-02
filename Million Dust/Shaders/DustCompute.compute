@@ -14,6 +14,7 @@
 
 #define TRUE 1
 #define FALSE 0
+#define TAU 6.28318530
 
 struct Dust
 {
@@ -50,20 +51,91 @@ float airResistance; // 공기 저항력
 /*************************************************
 /*                     Methods
 /*************************************************/
-float Random(float2 seed)
+
+#define RM 39482.17593
+#define RD1 7.8671
+#define RD2 3.3419
+#define RD3 5.8912
+#define RP1 2.1759
+#define RP2 4.7921
+
+float Random11(float seed)
 {
-    return frac(sin(dot(seed, float2(73.867, 25.241))) * 39482.17593);
+    return frac(sin(dot(float2(RD1, seed), float2(seed, RD2))) * RM);
 }
-float RandomRange(float2 seed, float min, float max)
+float2 Random12(float seed)
 {
-    return lerp(min, max, Random(seed)); 
+    return float2(
+        frac(sin(dot(float2(RD1, seed), float2(seed, RD2))) * RM),
+        frac(sin(dot(float2(seed, RD2), float2(RD3, seed))) * RM)
+    );
 }
-float3 RandomRange3(float2 seed, float3 min, float3 max)
+float3 Random13(float seed)
+{
+    return float3(
+        frac(sin(dot(float2(seed, RD1), float2(RD2, seed))) * RM),
+        frac(sin(dot(float2(seed, RD2), float2(RD3, seed))) * RM),
+        frac(sin(dot(float2(seed, RD3), float2(RD1, seed))) * RM)
+    );
+}
+
+float RandomRange11(float seed, float min, float max)
+{
+    return lerp(min, max, Random11(seed)); 
+}
+float2 RandomRange12(float seed, float2 min, float2 max)
+{
+    float2 vec;
+    vec.x = RandomRange11(seed,       min.x, max.x);
+    vec.y = RandomRange11(seed + RP1, min.y, max.y);
+    return vec;
+}
+float3 RandomRange13(float seed, float3 min, float3 max)
 {
     float3 vec;
-    vec.x = RandomRange(seed, min.x, max.x);
-    vec.y = RandomRange(seed + 7.219, min.y, max.y);
-    vec.z = RandomRange(seed + 79.714, min.z, max.z);
+    vec.x = RandomRange11(seed,       min.x, max.x);
+    vec.y = RandomRange11(seed + RP1, min.y, max.y);
+    vec.z = RandomRange11(seed + RP2, min.z, max.z);
+    return vec;
+}
+
+float Random21(float2 seed)
+{
+    return frac(sin(dot(seed, float2(RD1, RD2))) * RM);
+}
+float2 Random22(float2 seed)
+{
+    return float2(
+        frac(sin(dot(seed,                    float2(RD1, RD2))) * RM),
+        frac(sin(dot(seed + float2(RP1, RP2), float2(RD2, RD3))) * RM)
+    );
+}
+float3 Random23(float2 seed)
+{
+    return float3(
+        frac(sin(dot(seed,                    float2(RD1, RD2))) * RM),
+        frac(sin(dot(seed + float2(RP1, RP2), float2(RD2, RD3))) * RM),
+        frac(sin(dot(seed + float2(RP2, RP1), float2(RD3, RD1))) * RM)
+    );
+}
+
+float RandomRange21(float2 seed, float min, float max)
+{
+    return lerp(min, max, Random21(seed)); 
+}
+float2 RandomRange22(float2 seed, float2 min, float2 max)
+{
+    float2 vec;
+    vec.x = RandomRange21(seed,                    min.x, max.x);
+    vec.y = RandomRange21(seed + float2(RP1, RP2), min.y, max.y);
+    return vec;
+}
+float3 RandomRange23(float2 seed, float3 min, float3 max)
+{
+    float3 vec;
+    vec.x = RandomRange21(seed,                    min.x, max.x);
+    vec.y = RandomRange21(seed + float2(RP1, RP2), min.y, max.y);
+    vec.z = RandomRange21(seed + float2(RP2, RP1), min.z, max.z);
     return vec;
 }
 
@@ -96,10 +168,9 @@ void Populate (uint3 id : SV_DispatchThreadID)
     uint i = id.x;
 
     float width = boundsMax.x - boundsMin.x;
-    float f = float(i);
-    float2 uv = float2(f % width, f / width) / width;
+    float seed = i / (width * width * 179.823);
     
-    dustBuffer[i].position = RandomRange3(uv, boundsMin, boundsMax);
+    dustBuffer[i].position = RandomRange13(seed, boundsMin, boundsMax);
     dustBuffer[i].isAlive = TRUE;
 }
 
@@ -205,10 +276,11 @@ void Update (uint3 id : SV_DispatchThreadID)
     dustBuffer[i].position = nextPos;
 }
 
-int maxNumber;
-float randomSeed;
-float blowForce;
-float4x4 headMatrix;
+int maxNumber;       // 먼지 개수
+float time;          // Time.time
+float blowForce;     // 발사 강도(suctionForce 필드값)
+float blowAngleRad;  // 발사 각도(suctionAngle 필드값)
+float4x4 headMatrix; // CleanerHead : localToWorld
 
 // 2 - 죽었던 먼지들 살려서 발사
 [numthreads(64,1,1)]
@@ -219,16 +291,16 @@ void Blow (uint3 id : SV_DispatchThreadID)
     if(i >= maxNumber) return;
 
     // 확률 계산
-    float k = i + randomSeed;
-    float2 seed = float2(k % 64, k / 64) / 64;
-    float r = Random(seed);
+    float seed = (i + time) / 79238.288;
+    float r = Random11(seed);
     if(r > 0.01) return;
 
-    // 스프레이.. 제대로 구현....
+    // r2.x : 각도 (-360 ~ 360), r2.y : 원의 반지름
+    float seed2 = i / 82801.277;
+    float2 r2 = RandomRange12(seed2, float2(-TAU, 0), float2(TAU, 1));
+    float2 randomCircle = float2(cos(r2.x), sin(r2.x)) * r2.y * tan(blowAngleRad);
 
-    float3 randomDir = RandomRange3(seed, -1, 1);
-
-    float3 localDir = normalize(randomDir) * 0.5 + float3(0, 0, 1);
+    float3 localDir = float3(randomCircle.x, randomCircle.y, 1);
     float3 worldDir = mul(headMatrix, localDir);
     
     dustBuffer[i].position = headPos;

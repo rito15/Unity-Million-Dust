@@ -58,7 +58,7 @@ public class DustManager : MonoBehaviour
     private int kernelPopulateID;
     private int kernelUpdateID;
     private int kernelBlowID;
-    private int kernelUpdateGroupSizeX;
+    private int kernelGroupSizeX;
 
     private float deltaTime;
 
@@ -85,6 +85,7 @@ public class DustManager : MonoBehaviour
         if (Input.GetMouseButton(2))
             BlowDusts();
     }
+
     private void OnDestroy()
     {
         dustBuffer.Release();
@@ -122,7 +123,7 @@ public class DustManager : MonoBehaviour
         kernelBlowID = dustCompute.FindKernel("Blow");
 
         dustCompute.GetKernelThreadGroupSizes(kernelUpdateID, out uint tx, out _, out _);
-        kernelUpdateGroupSizeX = Mathf.CeilToInt((float)instanceNumber / tx);
+        kernelGroupSizeX = Mathf.CeilToInt((float)instanceNumber / tx);
 
         dustCompute.SetInt("maxNumber", instanceNumber);
     }
@@ -224,7 +225,7 @@ public class DustManager : MonoBehaviour
         dustCompute.SetFloat("gravityForce", gravityForce);
         dustCompute.SetFloat("airResistance", airResistance);
 
-        dustCompute.Dispatch(kernelUpdateID, kernelUpdateGroupSizeX, 1, 1);
+        dustCompute.Dispatch(kernelUpdateID, kernelGroupSizeX, 1, 1);
 
         aliveNumberBuffer.GetData(aliveNumberArray);
         aliveNumber = (int)aliveNumberArray[0];
@@ -232,10 +233,11 @@ public class DustManager : MonoBehaviour
 
     private void BlowDusts()
     {
-        dustCompute.SetFloat("randomSeed", Time.time);
+        dustCompute.SetFloat("time", Time.time);
         dustCompute.SetFloat("blowForce", cleanerHead.SuctionForce);
+        dustCompute.SetFloat("blowAngleRad", cleanerHead.SuctionAngleRad);
         dustCompute.SetMatrix("headMatrix", cleanerHead.transform.localToWorldMatrix);
-        dustCompute.Dispatch(kernelBlowID, kernelUpdateGroupSizeX, 1, 1);
+        dustCompute.Dispatch(kernelBlowID, kernelGroupSizeX, 1, 1);
     }
     #endregion
 }
