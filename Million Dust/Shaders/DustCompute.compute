@@ -290,12 +290,15 @@ void Blow (uint3 id : SV_DispatchThreadID)
     if(dustBuffer[i].isAlive == TRUE) return;
     if(i >= maxNumber) return;
 
-    // 확률 계산
+    // 발사 확률 계산
     float seed = (i + time) / 79238.288;
     float r = Random11(seed);
     if(r > 0.01) return;
 
-    // r2.x : 각도 (-360 ~ 360), r2.y : 원의 반지름
+    // Note : localDir의 z를 1로 고정하고, xy를 tan(blowAngleRad)로 지정함으로써
+    // 발사되는 먼지들이 형성하는 원뿔의 각도를 suctionAngle로 설정하는 효과를 얻는다.
+    
+    // r2.x : 각 먼지의 각도 (-360 ~ 360), r2.y : 원의 반지름(원뿔의 각도 결정)
     float seed2 = i / 82801.277;
     float2 r2 = RandomRange12(seed2, float2(-TAU, 0), float2(TAU, 1));
     float2 randomCircle = float2(cos(r2.x), sin(r2.x)) * r2.y * tan(blowAngleRad);
@@ -306,7 +309,7 @@ void Blow (uint3 id : SV_DispatchThreadID)
     dustBuffer[i].position = headPos;
     velocityBuffer[i] = (worldDir) * blowForce;
 
-    // 먼지 개수 추가
+    // 먼지 되살리기
     dustBuffer[i].isAlive = TRUE;
     InterlockedAdd(aliveNumberBuffer[0], 1);
 }
