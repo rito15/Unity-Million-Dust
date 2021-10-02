@@ -31,6 +31,7 @@ public class VacuumCleanerHead : MonoBehaviour
     private Transform parent;
     private float deltaTime;
     private bool mouseLocked = false;
+    private Mesh coneMesh;
 
     public bool IsRunning => isRunning;
     public float SqrSuctionRange => suctionRange * suctionRange;
@@ -44,29 +45,92 @@ public class VacuumCleanerHead : MonoBehaviour
     private void Awake()
     {
         parent = transform.parent;
+        CreateChildCone();
     }
-
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.blue;
-        DrawConeGizmo(Position, suctionRange, suctionAngle);
-
-        //Gizmos.color = Color.red;
-        //Gizmos.DrawWireSphere(Position, deathRange);
-    }
-
     private void Update()
     {
         deltaTime = Time.deltaTime;
 
+        ChangeConeScale();
         MouseControl();
-
         if (mouseLocked)
         {
             Move();
             Rotate();
         }
     }
+
+    /***********************************************************************
+    *                               Cone Gizmo(Child)
+    ***********************************************************************/
+    #region .
+
+    private Transform childConeTr;
+    [Space]
+    [SerializeField] private Material coneMaterial;
+
+    private void CreateChildCone()
+    {
+        GameObject go = new GameObject("Cone Mesh");
+        childConeTr = go.transform;
+        childConeTr.SetParent(transform, false);
+
+        MeshRenderer mr = go.AddComponent<MeshRenderer>();
+        mr.material = coneMaterial;
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mr.receiveShadows = false;
+
+        MeshFilter mf = go.AddComponent<MeshFilter>();
+        mf.sharedMesh = CreateConeMesh();
+    }
+
+    private Mesh CreateConeMesh(int sample = 24)
+    {
+        Mesh mesh = new Mesh();
+        Vector3[] verts = new Vector3[sample + 1];
+        int[] tris = new int[sample * 3];
+
+        verts[0] = Vector3.zero; // 꼭짓점
+        float deltaRad = Mathf.PI * 2f / sample;
+        for (int i = 1; i <= sample; i++)
+        {
+            float r = i * deltaRad;
+            verts[i] = new Vector3(Mathf.Cos(r), Mathf.Sin(r), 1f);
+        }
+
+        int t = 0;
+        for (int i = 1; i < sample; i++)
+        {
+            tris[t] = 0;
+            tris[t + 1] = i + 1;
+            tris[t + 2] = i;
+            t += 3;
+        }
+        tris[t] = 0;
+        tris[t + 1] = 1;
+        tris[t + 2] = sample;
+
+        mesh.vertices = verts;
+        mesh.triangles = tris;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+
+        return mesh;
+    }
+
+    private void ChangeConeScale()
+    {
+        float r = Mathf.Tan(suctionAngle * Mathf.Deg2Rad) * suctionRange * 0.5f;
+        float z = suctionRange * 0.5f;
+
+        childConeTr.localScale = new Vector3(r, r, z);
+    }
+
+    #endregion
+    /***********************************************************************
+    *                               Movements
+    ***********************************************************************/
+    #region .
 
     private void MouseControl()
     {
@@ -116,29 +180,5 @@ public class VacuumCleanerHead : MonoBehaviour
         transform.localEulerAngles = eRot;
     }
 
-    // origin : 원뿔 꼭대기
-    // height : 원뿔 높이
-    // angle  : 원뿔 각도
-    private void DrawConeGizmo(Vector3 origin, float height, float angle, int sample = 24)
-    {
-        float deltaRad = Mathf.PI * 2f / sample;
-        float circleRadius = Mathf.Tan(angle * Mathf.Deg2Rad) * height;
-        Vector3 forward = Vector3.forward * height;
-
-        Vector3 prevPoint = default;
-        for (int i = 0; i <= sample; i++)
-        {
-            float delta = deltaRad * i;
-            Vector3 circlePoint = new Vector3(Mathf.Cos(delta), Mathf.Sin(delta), 0f) * circleRadius;
-            circlePoint += forward;
-            circlePoint = circlePoint.normalized * height;
-
-            circlePoint = transform.TransformPoint(circlePoint);
-
-            Gizmos.DrawLine(circlePoint, origin);
-            if (i > 0)
-                Gizmos.DrawLine(circlePoint, prevPoint);
-            prevPoint = circlePoint;
-        }
-    }
+    #endregion
 }

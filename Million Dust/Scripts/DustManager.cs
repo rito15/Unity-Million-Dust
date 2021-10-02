@@ -207,6 +207,7 @@ public class DustManager : MonoBehaviour
         dustCompute.SetFloat("dotThreshold", Mathf.Cos(head.SuctionAngleRad));
 
         // 물리
+        dustCompute.SetFloat("radius", dustScale);
         dustCompute.SetFloat("mass", mass);
         dustCompute.SetFloat("gravityForce", gravityForce);
         dustCompute.SetFloat("airResistance", airResistance);
@@ -217,4 +218,20 @@ public class DustManager : MonoBehaviour
         aliveNumber = (int)aliveNumberArray[0];
     }
     #endregion
+
+
+    void Test()
+    {
+        Vector3 A = new Vector3(3, 5, 0);
+        Vector3 B = new Vector3(2, -4, 1);
+        Vector3 S = new Vector3(1, 1, 1);
+
+        Vector3 nAB = (B - A).normalized;
+        Vector3 AS = S - A;
+
+        float k = Vector3.Dot(AS, nAB);
+        Vector3 C = A + (k * nAB);
+
+
+    }
 }
