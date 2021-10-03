@@ -144,6 +144,11 @@ float SqrMagnitude(float3 vec)
     return (vec.x * vec.x) + (vec.y * vec.y) + (vec.z * vec.z);
 }
 
+float Square(float value)
+{
+    return value * value;
+}
+
 // 먼지 파괴
 void DestroyDust(uint i)
 {
@@ -151,10 +156,30 @@ void DestroyDust(uint i)
     InterlockedAdd(aliveNumberBuffer[0], -1);
 }
 
-// 구체 충돌 검사
-bool CheckSphereToSphereCollision(float3 pos, float radius, float3 spherePos, float sphereRadius)
+// 구체 충돌 여부 검사
+bool CheckSphereToSphereCollision(float3 posA, float radiusA, float3 posB, float radiusB)
 {
-    return length(pos - spherePos) < (radius + sphereRadius);
+    return SqrMagnitude(posA - posB) < Square(radiusA + radiusB);
+}
+
+// 점 A에서 점 B로 레이캐스트하여 평면과 접점 찾기
+float3 RaycastToPlane(float3 A, float3 B, float3 P, float3 N)
+{
+    //A = Ray Origin;
+    //B = Ray End;
+    //P = Plane Point;
+    //N = Plane Normal;
+    float3 AB = (B - A);
+    float3 nAB = normalize(AB);
+    
+    float d = dot(N, P - A) / dot(N, nAB);
+    float3 C = A + nAB * d;
+    return C;
+}
+
+float3 ReverseY(float3 vec)
+{
+    return float3(vec.x, -vec.y, vec.z);
 }
 
 /*************************************************
@@ -173,6 +198,8 @@ void Populate (uint3 id : SV_DispatchThreadID)
     dustBuffer[i].position = RandomRange13(seed, boundsMin, boundsMax);
     dustBuffer[i].isAlive = TRUE;
 }
+
+#define ELAS 0.6 // 탄성 계수
 
 // 1 - 실시간 업데이트
 [numthreads(64,1,1)]
@@ -234,8 +261,25 @@ void Update (uint3 id : SV_DispatchThreadID)
     // 다음 프레임 위치 계산 : S = S0 + V * t
     float3 nextPos = currPos + velocityBuffer[i] * deltaTime;
 
-    // [1] Plane (Y = 0)
-    nextPos.y = max(radius, nextPos.y);
+    // [1] Plane 충돌 (Y = 0)
+    if(nextPos.y < radius && currPos.y > radius) // 먼지 반지름 고려
+    {
+        float3 currToNext = nextPos - currPos;
+
+        // 평면과의 충돌 지점
+        float3 contact = RaycastToPlane(currPos, nextPos, float3(0, radius, 0), float3(0, 1, 0));
+        float rayLen = length(currToNext);
+        float inLen = length(currPos - contact); // 입사 벡터 길이
+        float outLen = (rayLen - inLen) * ELAS;  // 반사 벡터 길이(운동량 감소)
+        float3 outVec = ReverseY(currToNext) * (outLen / rayLen);
+
+        nextPos = contact + outVec;
+        velocityBuffer[i] = ReverseY(velocityBuffer[i]) * ELAS;
+    }
+    else
+    {
+        nextPos.y = max(radius, nextPos.y);
+    }
 
     // [2] Sphere to Sphere
     //float3 spherePos = float3(0, 2.5, 0);
@@ -276,7 +320,7 @@ void Update (uint3 id : SV_DispatchThreadID)
     dustBuffer[i].position = nextPos;
 }
 
-int maxNumber;       // 먼지 개수
+uint maxNumber;      // 먼지 개수
 float time;          // Time.time
 float blowForce;     // 발사 강도(suctionForce 필드값)
 float blowAngleRad;  // 발사 각도(suctionAngle 필드값)
@@ -302,12 +346,13 @@ void Blow (uint3 id : SV_DispatchThreadID)
     float seed2 = i / 82801.277;
     float2 r2 = RandomRange12(seed2, float2(-TAU, 0), float2(TAU, 1));
     float2 randomCircle = float2(cos(r2.x), sin(r2.x)) * r2.y * tan(blowAngleRad);
-
-    float3 localDir = float3(randomCircle.x, randomCircle.y, 1);
-    float3 worldDir = mul(headMatrix, localDir);
     
-    dustBuffer[i].position = headPos;
-    velocityBuffer[i] = (worldDir) * blowForce;
+    // 발사 방향 벡터 공간 변환
+    float3 localDir = float3(randomCircle.x, randomCircle.y, 1);
+    float3 worldDir = mul(headMatrix, float4(localDir, 0)).xyz;
+    
+    dustBuffer[i].position = headPos;           // 청소기 입구로 위치 이동
+    velocityBuffer[i] = (worldDir) * blowForce; // 발사 방향 설정
 
     // 먼지 되살리기
     dustBuffer[i].isAlive = TRUE;
