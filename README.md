@@ -24,12 +24,16 @@
 <img src="https://user-images.githubusercontent.com/42164422/135729248-ad069160-9fd7-40cd-8706-520829264ca8.gif" width=600/>
 
 
-- 평면 충돌 및 탄성력
+- 평면 충돌 및 탄성
 <img src="https://user-images.githubusercontent.com/42164422/135767238-85ea3b2e-868c-4893-90f4-18be7021ab39.gif" width=600/>
 
 <img src="https://user-images.githubusercontent.com/42164422/135767683-776f1380-f3f7-4331-9edb-b174beb9f807.gif" width=600/>
 
 
+- 월드 영역 제한(Cube), Cube 내벽 충돌
+<img src="https://user-images.githubusercontent.com/42164422/135858930-89c13581-1f58-40f4-bb0c-cf8b74f8b634.gif" width=600/>
+
+<img src="https://user-images.githubusercontent.com/42164422/135858942-1c171386-24c0-48ee-b3f5-9872ed8004d8.gif" width=600/>
 
 <!--
 <img src="" width=600/>
