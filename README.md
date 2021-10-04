@@ -2,6 +2,8 @@
 
 - Unity Engine
 
+- GPU Instancing
+
 - Physics-based Dust Simulation
 
 - <https://rito15.github.io/posts/unity-million-dust-simulation/>
