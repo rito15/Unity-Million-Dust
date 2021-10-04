@@ -1,4 +1,6 @@
-# Unity Million Dust
+# Million Dust
+
+- Unity Engine
 
 - Physics-based Dust Simulation
 
@@ -20,7 +22,7 @@
 <img src="https://user-images.githubusercontent.com/42164422/135330179-7bab5d42-3a71-416a-be28-d99d272d6336.gif" width=600/>
 
 
-- 원뿔 영역 발사
+- 원뿔 영역 방출
 <img src="https://user-images.githubusercontent.com/42164422/135729248-ad069160-9fd7-40cd-8706-520829264ca8.gif" width=600/>
 
 
