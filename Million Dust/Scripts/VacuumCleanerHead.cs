@@ -19,7 +19,7 @@ public class VacuumCleanerHead : MonoBehaviour
     [Range(1f, 50f), Tooltip("빨아들이는 범위(거리)")]
     [SerializeField] private float suctionRange = 5f;
 
-    [Range(0.01f, 90f), Tooltip("빨아들이는 원뿔 각도")]
+    [Range(0.01f, 89.9f), Tooltip("빨아들이는 원뿔 각도")]
     [SerializeField] private float suctionAngle = 45f;
 
     [Range(0.01f, 5f), Tooltip("먼지가 사망하는 영역 반지름")]

@@ -399,7 +399,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 697987788}
-  - component: {fileID: 697987790}
   - component: {fileID: 697987789}
   m_Layer: 0
   m_Name: Vacuum Cleaner Head
@@ -441,21 +440,6 @@ MonoBehaviour:
   deathRange: 2
   moveSpeed: 5
   coneMaterial: {fileID: 2100000, guid: 367b14cad09159d42aaa2db0961281b5, type: 2}
---- !u!114 &697987790
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 697987787}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7d156cd2424b5b2458a9fbce89c479cd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _alwaysOnTop: 1
-  _activated: 1
-  _targetList: []
 --- !u!1 &803335356
 GameObject:
   m_ObjectHideFlags: 0
@@ -883,7 +867,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1936900217}
-  - component: {fileID: 1936900218}
   - component: {fileID: 1936900216}
   m_Layer: 0
   m_Name: Dust Manager
@@ -909,11 +892,12 @@ MonoBehaviour:
   cleanerHead: {fileID: 697987789}
   instanceNumber: 300000
   distributionRange: 100
-  distributionHeight: 10
+  distributionHeight: 25
   dustScale: 0.4
   mass: 1
   gravityForce: 9.8
   airResistance: 1
+  elasticity: 0.6
   dustCompute: {fileID: 7200000, guid: a725fe981ed6cbf45a47ee3e356c76dc, type: 3}
 --- !u!4 &1936900217
 Transform:
@@ -929,21 +913,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1936900218
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1936900215}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7d156cd2424b5b2458a9fbce89c479cd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _alwaysOnTop: 1
-  _activated: 1
-  _targetList: []
 --- !u!1 &2138031400
 GameObject:
   m_ObjectHideFlags: 0
