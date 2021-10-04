@@ -42,6 +42,8 @@ public class DustManager : MonoBehaviour
     [SerializeField] private float gravityForce = 9.8f; // 중력 강도
     [Range(0f, 100f)]
     [SerializeField] private float airResistance = 1f;  // 공기 저항력
+    [Range(0f, 1f)]
+    [SerializeField] private float elasticity = 0.6f;   // 충돌 탄성력
 
     [Space]
     [SerializeField] private ComputeShader dustCompute;
@@ -224,6 +226,7 @@ public class DustManager : MonoBehaviour
         dustCompute.SetFloat("mass", mass);
         dustCompute.SetFloat("gravityForce", gravityForce);
         dustCompute.SetFloat("airResistance", airResistance);
+        dustCompute.SetFloat("elasticity", elasticity);
 
         dustCompute.Dispatch(kernelUpdateID, kernelGroupSizeX, 1, 1);
 

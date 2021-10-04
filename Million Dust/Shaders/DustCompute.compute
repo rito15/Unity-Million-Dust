@@ -3,15 +3,22 @@
 #pragma kernel Update
 #pragma kernel Blow
 
-/*************************************************
- *                 Naming Conventions
- *************************************************
+#include "Math Functions.cginc"
+#include "Random Functions.cginc"
+#include "Physics Functions.cginc"
+
+/*******************************************************************
+ *                        Naming Conventions
+/*******************************************************************
  - AToB  : B - A
  - ~Dir  : 방향 벡터(크기 1)
  - ~Dist : 두 위치 벡터 사이의 거리(스칼라)
  - ~Len  : 한 벡터의 길이
-************************************************ */
+/*******************************************************************/
 
+/*******************************************************************
+/*                            Definitions
+/*******************************************************************/
 #define TRUE 1
 #define FALSE 0
 #define TAU 6.28318530
@@ -22,9 +29,13 @@ struct Dust
     int isAlive;
 };
 
-/*************************************************
-/*                     Variables
-/*************************************************/
+/*******************************************************************
+/*                            Constants
+/*******************************************************************/
+
+/*******************************************************************
+/*                            Variables
+/*******************************************************************/
 RWStructuredBuffer<Dust> dustBuffer;        // 먼지 위치, 생존 여부
 RWStructuredBuffer<float3> velocityBuffer;  // 먼지 속도
 RWStructuredBuffer<uint> aliveNumberBuffer; // 생존한 먼지 개수
@@ -43,112 +54,23 @@ float sqrForce;      // 빨아들이는 힘 - 제곱
 float3 headForwardDir; // 진공 청소기 전방 벡터
 float dotThreshold;    // 진공 청소기 원뿔 영역 내적 범위
 
+/* Physics(Update) */
 float radius;        // 먼지 반지름
 float mass;          // 질량
 float gravityForce;  // -Y 방향 중력 강도
 float airResistance; // 공기 저항력
+float elasticity;    // 탄성력
 
-/*************************************************
-/*                     Methods
-/*************************************************/
+/* Blow */
+uint maxNumber;      // 먼지 개수
+float time;          // Time.time
+float blowForce;     // 발사 강도(suctionForce 필드값)
+float blowAngleRad;  // 발사 각도(suctionAngle 필드값)
+float4x4 headMatrix; // CleanerHead : localToWorld
 
-#define RM 39482.17593
-#define RD1 7.8671
-#define RD2 3.3419
-#define RD3 5.8912
-#define RP1 2.1759
-#define RP2 4.7921
-
-float Random11(float seed)
-{
-    return frac(sin(dot(float2(RD1, seed), float2(seed, RD2))) * RM);
-}
-float2 Random12(float seed)
-{
-    return float2(
-        frac(sin(dot(float2(RD1, seed), float2(seed, RD2))) * RM),
-        frac(sin(dot(float2(seed, RD2), float2(RD3, seed))) * RM)
-    );
-}
-float3 Random13(float seed)
-{
-    return float3(
-        frac(sin(dot(float2(seed, RD1), float2(RD2, seed))) * RM),
-        frac(sin(dot(float2(seed, RD2), float2(RD3, seed))) * RM),
-        frac(sin(dot(float2(seed, RD3), float2(RD1, seed))) * RM)
-    );
-}
-
-float RandomRange11(float seed, float min, float max)
-{
-    return lerp(min, max, Random11(seed)); 
-}
-float2 RandomRange12(float seed, float2 min, float2 max)
-{
-    float2 vec;
-    vec.x = RandomRange11(seed,       min.x, max.x);
-    vec.y = RandomRange11(seed + RP1, min.y, max.y);
-    return vec;
-}
-float3 RandomRange13(float seed, float3 min, float3 max)
-{
-    float3 vec;
-    vec.x = RandomRange11(seed,       min.x, max.x);
-    vec.y = RandomRange11(seed + RP1, min.y, max.y);
-    vec.z = RandomRange11(seed + RP2, min.z, max.z);
-    return vec;
-}
-
-float Random21(float2 seed)
-{
-    return frac(sin(dot(seed, float2(RD1, RD2))) * RM);
-}
-float2 Random22(float2 seed)
-{
-    return float2(
-        frac(sin(dot(seed,                    float2(RD1, RD2))) * RM),
-        frac(sin(dot(seed + float2(RP1, RP2), float2(RD2, RD3))) * RM)
-    );
-}
-float3 Random23(float2 seed)
-{
-    return float3(
-        frac(sin(dot(seed,                    float2(RD1, RD2))) * RM),
-        frac(sin(dot(seed + float2(RP1, RP2), float2(RD2, RD3))) * RM),
-        frac(sin(dot(seed + float2(RP2, RP1), float2(RD3, RD1))) * RM)
-    );
-}
-
-float RandomRange21(float2 seed, float min, float max)
-{
-    return lerp(min, max, Random21(seed)); 
-}
-float2 RandomRange22(float2 seed, float2 min, float2 max)
-{
-    float2 vec;
-    vec.x = RandomRange21(seed,                    min.x, max.x);
-    vec.y = RandomRange21(seed + float2(RP1, RP2), min.y, max.y);
-    return vec;
-}
-float3 RandomRange23(float2 seed, float3 min, float3 max)
-{
-    float3 vec;
-    vec.x = RandomRange21(seed,                    min.x, max.x);
-    vec.y = RandomRange21(seed + float2(RP1, RP2), min.y, max.y);
-    vec.z = RandomRange21(seed + float2(RP2, RP1), min.z, max.z);
-    return vec;
-}
-
-float SqrMagnitude(float3 vec)
-{
-    return (vec.x * vec.x) + (vec.y * vec.y) + (vec.z * vec.z);
-}
-
-float Square(float value)
-{
-    return value * value;
-}
-
+/*******************************************************************
+/*                            Functions
+/*******************************************************************/
 // 먼지 파괴
 void DestroyDust(uint i)
 {
@@ -156,36 +78,9 @@ void DestroyDust(uint i)
     InterlockedAdd(aliveNumberBuffer[0], -1);
 }
 
-// 구체 충돌 여부 검사
-bool CheckSphereToSphereCollision(float3 posA, float radiusA, float3 posB, float radiusB)
-{
-    return SqrMagnitude(posA - posB) < Square(radiusA + radiusB);
-}
-
-// 점 A에서 점 B로 레이캐스트하여 평면과 접점 찾기
-float3 RaycastToPlane(float3 A, float3 B, float3 P, float3 N)
-{
-    //A = Ray Origin;
-    //B = Ray End;
-    //P = Plane Point;
-    //N = Plane Normal;
-    float3 AB = (B - A);
-    float3 nAB = normalize(AB);
-    
-    float d = dot(N, P - A) / dot(N, nAB);
-    float3 C = A + nAB * d;
-    return C;
-}
-
-float3 ReverseY(float3 vec)
-{
-    return float3(vec.x, -vec.y, vec.z);
-}
-
-/*************************************************
-/*                     Kernels
-/*************************************************/
-
+/*******************************************************************
+/*                             Kernels
+/*******************************************************************/
 // 0 - 초기 생성
 [numthreads(64,1,1)]
 void Populate (uint3 id : SV_DispatchThreadID)
@@ -198,8 +93,6 @@ void Populate (uint3 id : SV_DispatchThreadID)
     dustBuffer[i].position = RandomRange13(seed, boundsMin, boundsMax);
     dustBuffer[i].isAlive = TRUE;
 }
-
-#define ELAS 0.6 // 탄성 계수
 
 // 1 - 실시간 업데이트
 [numthreads(64,1,1)]
@@ -269,12 +162,12 @@ void Update (uint3 id : SV_DispatchThreadID)
         // 평면과의 충돌 지점
         float3 contact = RaycastToPlane(currPos, nextPos, float3(0, radius, 0), float3(0, 1, 0));
         float rayLen = length(currToNext);
-        float inLen = length(currPos - contact); // 입사 벡터 길이
-        float outLen = (rayLen - inLen) * ELAS;  // 반사 벡터 길이(운동량 감소)
+        float inLen = length(currPos - contact);       // 입사 벡터 길이
+        float outLen = (rayLen - inLen) * elasticity;  // 반사 벡터 길이(운동량 감소)
         float3 outVec = ReverseY(currToNext) * (outLen / rayLen);
 
         nextPos = contact + outVec;
-        velocityBuffer[i] = ReverseY(velocityBuffer[i]) * ELAS;
+        velocityBuffer[i] = ReverseY(velocityBuffer[i]) * elasticity;
     }
     else
     {
@@ -282,19 +175,19 @@ void Update (uint3 id : SV_DispatchThreadID)
     }
 
     // [2] Sphere to Sphere
-    //float3 spherePos = float3(0, 2.5, 0);
-    //float3 sphereRadius = 5;
-    //bool sphereCollided = CheckSphereToSphereCollision(nextPos, radius, spherePos, sphereRadius);
-    //if(sphereCollided)
-    //{
-    //    float3 inDir = normalize(velocityBuffer[i]);
-    //    float3 contactNormal = normalize(nextPos - spherePos);
-    //    float3 adjNextPos = spherePos + contactNormal * (sphereRadius + radius);
-    //    float3 outDir = reflect(inDir, contactNormal);
-    //
-    //    nextPos = adjNextPos;
-    //    velocityBuffer[i] = outDir * length(velocityBuffer[i]) * 0.8;
-    //}
+    float3 spherePos = float3(0, 2.5, 0);
+    float3 sphereRadius = 5;
+    bool sphereCollided = CheckSphereToSphereCollision(nextPos, radius, spherePos, sphereRadius);
+    if(sphereCollided)
+    {
+        float3 inDir = normalize(velocityBuffer[i]);
+        float3 contactNormal = normalize(nextPos - spherePos);
+        float3 adjNextPos = spherePos + contactNormal * (sphereRadius + radius);
+        float3 outDir = reflect(inDir, contactNormal);
+    
+        nextPos = adjNextPos;
+        velocityBuffer[i] = outDir * length(velocityBuffer[i]) * 0.8;
+    }
 
     // [3] 입구로 완전히 빨아들인 경우, 먼지 파괴
     if(sucking)
@@ -319,12 +212,6 @@ void Update (uint3 id : SV_DispatchThreadID)
     // 다음 위치 적용
     dustBuffer[i].position = nextPos;
 }
-
-uint maxNumber;      // 먼지 개수
-float time;          // Time.time
-float blowForce;     // 발사 강도(suctionForce 필드값)
-float blowAngleRad;  // 발사 각도(suctionAngle 필드값)
-float4x4 headMatrix; // CleanerHead : localToWorld
 
 // 2 - 죽었던 먼지들 살려서 발사
 [numthreads(64,1,1)]
