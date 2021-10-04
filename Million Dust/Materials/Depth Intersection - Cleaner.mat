@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Depth Intersection 0
+  m_Name: Depth Intersection - Cleaner
   m_Shader: {fileID: 4800000, guid: 36c962b1c4493cd4e91d1f87bdfee72d, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 0
@@ -20,8 +20,8 @@ Material:
     serializedVersion: 3
     m_TexEnvs: []
     m_Floats:
-    - _Ambient: 0.4
-    - _Intersection: 0.5
+    - _Ambient: 0.3
+    - _Intersection: 0.6
     - __dirty: 0
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0, g: 1, b: 0.9374714, a: 1}

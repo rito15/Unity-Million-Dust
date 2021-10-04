@@ -58,7 +58,7 @@ Shader "Rito/Depth Intersection"
 }
 /*ASEBEGIN
 Version=18900
-362;282;1468;929;1250.946;141.0286;1.3;False;False
+865;267;1468;923;1250.946;137.1286;1.3;True;False
 Node;AmplifyShaderEditor.ScreenPosInputsNode;3;-905.3029,227.2883;Float;False;1;False;0;5;FLOAT4;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
 Node;AmplifyShaderEditor.RangedFloatNode;4;-995.2861,156.9584;Inherit;False;Property;_Intersection;Intersection;1;0;Create;True;0;0;0;False;0;False;0.1;0;0;1;0;1;FLOAT;0
 Node;AmplifyShaderEditor.ScreenDepthNode;5;-910.3029,394.2883;Inherit;False;0;True;1;0;FLOAT4;0,0,0,0;False;1;FLOAT;0
@@ -92,4 +92,4 @@ WireConnection;17;1;14;0
 WireConnection;0;2;17;0
 WireConnection;0;9;14;0
 ASEEND*/
-//CHKSM=4E97F4593C67DA0D2F5C2322CA7FCEE883974C89
+//CHKSM=86515DAAD65BC1CD3F21D94E10AE17604D98D73F
