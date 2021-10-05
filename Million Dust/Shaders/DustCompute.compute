@@ -35,19 +35,28 @@ RWStructuredBuffer<Dust> dustBuffer;        // 먼지 위치, 생존 여부
 RWStructuredBuffer<float3> velocityBuffer;  // 먼지 속도
 RWStructuredBuffer<uint> aliveNumberBuffer; // 생존한 먼지 개수
 
-int isRunning;    // 청소기 가동 여부
-float deltaTime;
-
+/* Common */
 float3 boundsMin; // 먼지 생성 영역 - 최소 지점
 float3 boundsMax; // 먼지 생성 영역 - 최대 지점
+float deltaTime;
 
-float3 headPos;      // 진공 청소기 입구 위치
-float sqrRange;      // 먼지 흡입 범위(반지름) - 제곱
-float sqrDeathRange; // 먼지 소멸 범위(반지름) - 제곱
-float sqrForce;      // 빨아들이는 힘 - 제곱
+/* Controller */
+float3 controllerPos;     // 월드 위치
+float3 controllerForward; // 전방 벡터
 
-float3 headForwardDir; // 진공 청소기 전방 벡터
-float dotThreshold;    // 진공 청소기 원뿔 영역 내적 범위
+/* Vacuum Cleaner */
+int cleanerRunning;         // 청소기 가동 여부
+float cleanerSqrDist;       // 먼지 흡입 범위(반지름) - 제곱
+float cleanerSqrDeathRange; // 먼지 소멸 범위(반지름) - 제곱
+float cleanerSqrForce;      // 빨아들이는 힘 - 제곱
+float cleanerDotThreshold;  // 진공 청소기 원뿔 영역 내적 범위
+
+/* Emitter */
+uint dustCount;        // 먼지 개수
+float time;            // Time.time
+float emitterForce;    // 방출 강도
+float emitterAngleRad; // 방출 각도
+float4x4 controllerMatrix; //  localToWorld
 
 /* Physics(Update) */
 float radius;        // 먼지 반지름
@@ -55,13 +64,6 @@ float mass;          // 질량
 float gravityForce;  // -Y 방향 중력 강도
 float airResistance; // 공기 저항력
 float elasticity;    // 탄성력
-
-/* Blow */
-uint maxNumber;      // 먼지 개수
-float time;          // Time.time
-float blowForce;     // 발사 강도(suctionForce 필드값)
-float blowAngleRad;  // 발사 각도(suctionAngle 필드값)
-float4x4 headMatrix; // CleanerHead : localToWorld
 
 /*******************************************************************
 /*                            Functions
@@ -104,19 +106,19 @@ void Update (uint3 id : SV_DispatchThreadID)
     //                  청소기로 먼지 흡수
     // ===================================================
     float3 currPos = dustBuffer[i].position;  // 현재 프레임 먼지 위치
-    float3 currToHead = (headPos - currPos);  // 청소기 입구 -> 먼지
+    float3 currToHead = (controllerPos - currPos);  // 청소기 입구 -> 먼지
     float sqrDist = SqrMagnitude(currToHead); // 청소기 입구 <-> 먼지 사이 거리 제곱
 
     // 먼지 이동
-    if (isRunning == TRUE && sqrDist < sqrRange)
+    if (cleanerRunning == TRUE && sqrDist < cleanerSqrDist)
     {
         float3 dustToHeadDir = normalize(currToHead); // 먼지 -> 청소기 입구 방향
-        float dotValue = dot(headForwardDir, -dustToHeadDir);
+        float dotValue = dot(controllerForward, -dustToHeadDir);
 
         // 원뿔 범위 내에 있을 경우 빨아들이기
-        if(dotValue > dotThreshold)
+        if(dotValue > cleanerDotThreshold)
         {
-            float suctionForce = sqrForce / sqrDist;
+            float suctionForce = cleanerSqrForce / sqrDist;
 
             // 빨아들이는 힘
             F += dustToHeadDir * suctionForce * dotValue;
@@ -173,17 +175,17 @@ void Update (uint3 id : SV_DispatchThreadID)
     // [3] 입구로 완전히 빨아들인 경우, 먼지 파괴
     if(sucking)
     {
-        float3 headToNext = nextPos - headPos;
+        float3 headToNext = nextPos - controllerPos;
 
         float3 headToCurrDir = normalize(-currToHead);
         float3 headToNextDir = normalize(headToNext);
 
         // 현재 프레임에 먼지가 원뿔 범위 내에 있었다면
-        if(dot(headForwardDir, headToCurrDir) > dotThreshold)
+        if(dot(controllerForward, headToCurrDir) > cleanerDotThreshold)
         {
             // 다음 프레임에 원뿔 밖으로 나가거나 입구에 근접하면 파괴
-            if(dot(headForwardDir, headToNextDir) < dotThreshold ||
-               SqrMagnitude(headToNext) < sqrDeathRange)
+            if(dot(controllerForward, headToNextDir) < cleanerDotThreshold ||
+               SqrMagnitude(headToNext) < cleanerSqrDeathRange)
             {
                 DestroyDust(i);
             }
@@ -200,27 +202,27 @@ void Blow (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
     if(dustBuffer[i].isAlive == TRUE) return;
-    if(i >= maxNumber) return;
+    if(i >= dustCount) return;
 
     // 발사 확률 계산
     float seed = (i + time) / 79238.288;
     float r = Random11(seed);
     if(r > 0.01) return;
 
-    // Note : localDir의 z를 1로 고정하고, xy를 tan(blowAngleRad)로 지정함으로써
+    // Note : localDir의 z를 1로 고정하고, xy를 tan(emitterAngleRad)로 지정함으로써
     // 발사되는 먼지들이 형성하는 원뿔의 각도를 suctionAngle로 설정하는 효과를 얻는다.
     
     // r2.x : 각 먼지의 각도 (-360 ~ 360), r2.y : 원의 반지름(원뿔의 각도 결정)
     float seed2 = i / 82801.277;
     float2 r2 = RandomRange12(seed2, float2(-TAU, 0), float2(TAU, 1));
-    float2 randomCircle = float2(cos(r2.x), sin(r2.x)) * r2.y * tan(blowAngleRad);
+    float2 randomCircle = float2(cos(r2.x), sin(r2.x)) * r2.y * tan(emitterAngleRad);
     
     // 발사 방향 벡터 공간 변환
     float3 localDir = float3(randomCircle.x, randomCircle.y, 1);
-    float3 worldDir = mul(headMatrix, float4(localDir, 0)).xyz;
+    float3 worldDir = mul(controllerMatrix, float4(localDir, 0)).xyz;
     
-    dustBuffer[i].position = headPos;           // 청소기 입구로 위치 이동
-    velocityBuffer[i] = (worldDir) * blowForce; // 발사 방향 설정
+    dustBuffer[i].position = controllerPos;        // 청소기 입구로 위치 이동
+    velocityBuffer[i] = (worldDir) * emitterForce; // 발사 방향 설정
 
     // 먼지 되살리기
     dustBuffer[i].isAlive = TRUE;

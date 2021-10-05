@@ -7,7 +7,7 @@
     }
     SubShader
     {
-        Tags { "Queue"="Geometry" "RenderType"="Transparent" "IgnoreProjector"="True" }
+        Tags { "Queue"="Transparent+1" "RenderType"="Transparent" "IgnoreProjector"="True" }
         ZWrite Off
 		Lighting Off
         Fog { Mode Off }

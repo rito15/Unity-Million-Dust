@@ -228,7 +228,7 @@ GameObject:
   - component: {fileID: 345767766}
   - component: {fileID: 345767765}
   m_Layer: 0
-  m_Name: Sphere
+  m_Name: Renderer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -246,7 +246,7 @@ Transform:
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_Children: []
   m_Father: {fileID: 999038417}
-  m_RootOrder: 2
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!135 &345767765
 SphereCollider:
@@ -279,7 +279,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: a6ef5095705bc274099cf9480a069bcd, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -399,7 +399,7 @@ Transform:
   m_LocalScale: {x: 10, y: 10, z: 10}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 5
+  m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &682905965
 GameObject:
@@ -495,7 +495,7 @@ GameObject:
   - component: {fileID: 697987788}
   - component: {fileID: 697987789}
   m_Layer: 0
-  m_Name: Vacuum Cleaner Head
+  m_Name: Vacuum Cleaner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -508,13 +508,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 697987787}
-  m_LocalRotation: {x: 0.2588191, y: 0, z: 0, w: 0.9659258}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 999038417}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 30, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &697987789
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -527,13 +527,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8420e3c9cbe815242b4cf82600e6776c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isRunning: 0
-  suctionForce: 50
-  suctionRange: 10
-  suctionAngle: 45
-  deathRange: 2
-  moveSpeed: 5
   coneMaterial: {fileID: 2100000, guid: 367b14cad09159d42aaa2db0961281b5, type: 2}
+  isRunning: 0
+  force: 50
+  distance: 5
+  angle: 45
+  deathRange: 2
 --- !u!1 &698902742
 GameObject:
   m_ObjectHideFlags: 0
@@ -566,7 +565,7 @@ Transform:
   - {fileID: 1692804037}
   - {fileID: 733306840}
   m_Father: {fileID: 0}
-  m_RootOrder: 7
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &719809810
 GameObject:
@@ -941,8 +940,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 999038417}
+  - component: {fileID: 999038418}
   m_Layer: 0
-  m_Name: Vacuum Cleaner
+  m_Name: Player Controller
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -955,16 +955,30 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 999038416}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 5, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 697987788}
+  - {fileID: 1656877670}
   - {fileID: 1662239501}
   - {fileID: 345767764}
-  m_Father: {fileID: 0}
-  m_RootOrder: 4
+  m_Father: {fileID: 2037478757}
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &999038418
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 999038416}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2f964c94709560498e70c4db562fa43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 25
 --- !u!1 &1134169623
 GameObject:
   m_ObjectHideFlags: 0
@@ -1184,6 +1198,54 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+--- !u!1 &1656877669
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1656877670}
+  - component: {fileID: 1656877671}
+  m_Layer: 0
+  m_Name: Dust Emitter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1656877670
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1656877669}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 999038417}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1656877671
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1656877669}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e644367b112d2f54486e9f468a25208f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  coneMaterial: {fileID: 2100000, guid: 012fb628776ba904392ebf8ebf896c5d, type: 2}
+  isRunning: 0
+  force: 50
+  distance: 5
+  angle: 45
 --- !u!1 &1662239500
 GameObject:
   m_ObjectHideFlags: 0
@@ -1209,13 +1271,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1662239500}
-  m_LocalRotation: {x: 0.19595397, y: -0, z: -0, w: 0.9806131}
-  m_LocalPosition: {x: 0, y: 7.3, z: -15}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 2, z: -20}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 999038417}
-  m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 22.601002, y: 0, z: 0}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!81 &1662239502
 AudioListener:
   m_ObjectHideFlags: 0
@@ -1392,7 +1454,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dustMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
   dustMaterial: {fileID: 2100000, guid: 580e99519544d7049bc9d6a36bb4e96b, type: 2}
-  cleanerHead: {fileID: 697987789}
+  controller: {fileID: 999038418}
+  cleaner: {fileID: 697987789}
+  emitter: {fileID: 1656877671}
   instanceNumber: 300000
   distributionRange: 100
   distributionHeight: 25
@@ -1415,6 +1479,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2037478756
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2037478757}
+  m_Layer: 0
+  m_Name: Player
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2037478757
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2037478756}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 999038417}
+  m_Father: {fileID: 0}
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2138031400
 GameObject:
