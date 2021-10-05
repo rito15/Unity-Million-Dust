@@ -29,23 +29,28 @@ namespace Rito.MillionDust
             DustEmitter
         }
 
-        [Header("Dust Options")]
+        [Header("Dust")]
         [SerializeField] private Mesh dustMesh;         // 먼지 메시
         [SerializeField] private Material dustMaterial; // 먼지 마테리얼
+        [SerializeField] private int instanceNumber = 100000;    // 생성할 먼지 개수
+        [Range(0.01f, 2f)]
+        [SerializeField] private float dustScale = 1f;           // 먼지 크기
 
-        [Header("Player Options")]
+        [Header("Spawn")]
+        [SerializeField] private Vector3 spawnBottomCenter = new Vector3(0, 0, 0); // 분포 중심 하단 위치(피벗)
+        [SerializeField] private Vector3 spawnSize = new Vector3(100, 25, 100);    // 분포 너비(XYZ)
+
+        // 월드 큐브 콜라이더
+        [Header("World")]
+        [SerializeField] private Vector3 worldBottomCenter = new Vector3(0, 0, 0);
+        [SerializeField] private Vector3 worldSize = new Vector3(100, 25, 100);
+
+        [Header("Player")]
         [SerializeField] private PlayerController controller;
         [SerializeField] private VacuumCleaner cleaner;
         [SerializeField] private DustEmitter emitter;
 
-        [Header("Dust Option")]
-        [SerializeField] private int instanceNumber = 100000;    // 생성할 먼지 개수
-        [SerializeField] private float distributionRange = 100f; // 먼지 분포 범위(정사각형 너비)
-        [SerializeField] private float distributionHeight = 5f;  // 먼지 분포 높이
-        [Range(0.01f, 2f)]
-        [SerializeField] private float dustScale = 1f;           // 먼지 크기
-
-        [Header("Physics Options")]
+        [Header("Physics")]
         [Range(-20f, 20f)]
         [SerializeField] private float gravityX = 0;
 
@@ -80,7 +85,7 @@ namespace Rito.MillionDust
         private SimulationMode mode;
 
 
-        private Bounds frustumOverlapBounds;
+        private Bounds worldBounds;
 
         private uint[] aliveNumberArray;
         private int aliveNumber;
@@ -116,7 +121,7 @@ namespace Rito.MillionDust
             UpdatePhysics();
 
             dustMaterial.SetFloat("_Scale", dustScale);
-            Graphics.DrawMeshInstancedIndirect(dustMesh, 0, dustMaterial, frustumOverlapBounds, argsBuffer);
+            Graphics.DrawMeshInstancedIndirect(dustMesh, 0, dustMaterial, worldBounds, argsBuffer);
         }
 
         private void OnDestroy()
@@ -194,9 +199,10 @@ namespace Rito.MillionDust
             aliveNumberBuffer.SetData(aliveNumberArray);
 
             // 카메라 프러스텀이 이 영역과 겹치지 않으면 렌더링되지 않는다.
-            frustumOverlapBounds = new Bounds(
-                Vector3.zero,
-                new Vector3(distributionRange, distributionHeight, distributionRange)
+            Vector3 boundsCenter = worldBottomCenter + Vector3.up * worldSize.y * 0.5f;
+            worldBounds = new Bounds(
+                boundsCenter,
+                worldSize
             );
         }
 
@@ -222,14 +228,11 @@ namespace Rito.MillionDust
         /// <summary> 먼지들을 영역 내의 무작위 위치에 생성한다. </summary>
         private void PopulateDusts()
         {
-            Vector3 boundsMin, boundsMax;
-            boundsMin.x = boundsMin.z = -0.5f * distributionRange;
-            boundsMax.x = boundsMax.z = -boundsMin.x;
-            boundsMin.y = 0f;
-            boundsMax.y = distributionHeight;
+            Vector3 spawnCenter = spawnBottomCenter + Vector3.up * spawnSize.y * 0.5f;
+            Bounds spawnBounds = new Bounds(spawnCenter, spawnSize);
 
-            dustCompute.SetVector("boundsMin", boundsMin);
-            dustCompute.SetVector("boundsMax", boundsMax);
+            dustCompute.SetVector("spawnBoundsMin", spawnBounds.min);
+            dustCompute.SetVector("spawnBoundsMax", spawnBounds.max);
 
             dustCompute.GetKernelThreadGroupSizes(kernelPopulateID, out uint tx, out _, out _);
             int groupSizeX = Mathf.CeilToInt((float)instanceNumber / tx);
@@ -283,6 +286,8 @@ namespace Rito.MillionDust
             dustCompute.SetVector("controllerForward", controller.Forward);
 
             // 물리
+            dustCompute.SetVector("worldBoundsMin", worldBounds.min);
+            dustCompute.SetVector("worldBoundsMax", worldBounds.max);
             dustCompute.SetVector("gravity", new Vector3(gravityX, gravityY, gravityZ));
             dustCompute.SetFloat("radius", dustScale);
             dustCompute.SetFloat("mass", mass);

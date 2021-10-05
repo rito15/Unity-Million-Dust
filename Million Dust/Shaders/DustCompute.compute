@@ -33,8 +33,10 @@ RWStructuredBuffer<float3> velocityBuffer;  // 먼지 속도
 RWStructuredBuffer<uint> aliveNumberBuffer; // 생존한 먼지 개수
 
 /* Common */
-float3 boundsMin; // 먼지 생성 영역 - 최소 지점
-float3 boundsMax; // 먼지 생성 영역 - 최대 지점
+float3 spawnBoundsMin; // 먼지 생성 영역 - 최소 지점
+float3 spawnBoundsMax; // 먼지 생성 영역 - 최대 지점
+float3 worldBoundsMin; // 월드 제한 영역 - 최소 지점
+float3 worldBoundsMax; // 월드 제한 영역 - 최대 지점
 float deltaTime;
 
 /* Controller */
@@ -81,10 +83,10 @@ void Populate (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
     
-    float width = boundsMax.x - boundsMin.x;
+    float width = spawnBoundsMax.x - spawnBoundsMin.x;
     float seed = i / (width * width * 179.823);
 
-    dustBuffer[i].position = RandomRange13(seed, boundsMin, boundsMax);
+    dustBuffer[i].position = RandomRange13(seed, spawnBoundsMin, spawnBoundsMax);
     dustBuffer[i].isAlive = TRUE;
 }
 
@@ -122,10 +124,10 @@ void Update (uint3 id : SV_DispatchThreadID)
     float3 currPos = dustBuffer[i].position;
     float3 nextPos = currPos + velocityBuffer[i] * deltaTime;
 
-    // [1] Cube 영역 제한
+    // [1] 월드 영역 제한(Cube)
     Bounds bounds;
-    bounds.min = boundsMin;
-    bounds.max = boundsMax;
+    bounds.min = worldBoundsMin;
+    bounds.max = worldBoundsMax;
     ConfineWithinCubeBounds(currPos, nextPos, velocityBuffer[i], radius, elasticity, bounds);
 
     // [2] Sphere to Sphere

@@ -7,6 +7,8 @@ Shader "Rito/Depth Intersection"
 		_Color("Color", Color) = (1,1,1,0)
 		_Intersection("Intersection", Range( 0 , 1)) = 0.1
 		_Ambient("Ambient", Range( 0 , 1)) = 0.1
+		_FresnelPower("Fresnel Power", Range( 0 , 20)) = 5
+		_FresnelIntensity("Fresnel Intensity", Range( 0 , 20)) = 1
 		[HideInInspector] __dirty( "", Int ) = 1
 	}
 
@@ -30,6 +32,8 @@ Shader "Rito/Depth Intersection"
 		uniform float _Intersection;
 		UNITY_DECLARE_DEPTH_TEXTURE( _CameraDepthTexture );
 		uniform float4 _CameraDepthTexture_TexelSize;
+		uniform float _FresnelIntensity;
+		uniform float _FresnelPower;
 
 		inline half4 LightingUnlit( SurfaceOutput s, half3 lightDir, half atten )
 		{
@@ -46,7 +50,7 @@ Shader "Rito/Depth Intersection"
 			float3 ase_worldViewDir = normalize( UnityWorldSpaceViewDir( ase_worldPos ) );
 			float3 ase_worldNormal = i.worldNormal;
 			float fresnelNdotV11 = dot( ase_worldNormal, ase_worldViewDir );
-			float fresnelNode11 = ( 0.0 + 1.0 * pow( 1.0 - fresnelNdotV11, 5.0 ) );
+			float fresnelNode11 = ( 0.0 + _FresnelIntensity * pow( 1.0 - fresnelNdotV11, _FresnelPower ) );
 			float temp_output_14_0 = ( ( _Color.a * _Ambient ) + ( _Color.a * ( saturate( ( ( _Intersection + ase_screenPos.w ) - eyeDepth5 ) ) + fresnelNode11 ) ) );
 			o.Emission = ( _Color * temp_output_14_0 ).rgb;
 			o.Alpha = temp_output_14_0;
@@ -58,17 +62,19 @@ Shader "Rito/Depth Intersection"
 }
 /*ASEBEGIN
 Version=18900
-865;267;1468;923;1250.946;137.1286;1.3;True;False
+301;120;1468;899;1360.146;142.3286;1.3;True;False
 Node;AmplifyShaderEditor.ScreenPosInputsNode;3;-905.3029,227.2883;Float;False;1;False;0;5;FLOAT4;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
 Node;AmplifyShaderEditor.RangedFloatNode;4;-995.2861,156.9584;Inherit;False;Property;_Intersection;Intersection;1;0;Create;True;0;0;0;False;0;False;0.1;0;0;1;0;1;FLOAT;0
 Node;AmplifyShaderEditor.ScreenDepthNode;5;-910.3029,394.2883;Inherit;False;0;True;1;0;FLOAT4;0,0,0,0;False;1;FLOAT;0
 Node;AmplifyShaderEditor.SimpleAddOpNode;6;-703.3029,221.2883;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
 Node;AmplifyShaderEditor.SimpleSubtractOpNode;7;-580.3029,263.2883;Inherit;False;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
-Node;AmplifyShaderEditor.SaturateNode;8;-455.3028,263.2883;Inherit;False;1;0;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;19;-925.9464,494.6714;Inherit;False;Property;_FresnelIntensity;Fresnel Intensity;4;0;Create;True;0;0;0;False;0;False;1;2;0;20;0;1;FLOAT;0
+Node;AmplifyShaderEditor.RangedFloatNode;18;-927.2462,573.9714;Inherit;False;Property;_FresnelPower;Fresnel Power;3;0;Create;True;0;0;0;False;0;False;5;0;0;20;0;1;FLOAT;0
 Node;AmplifyShaderEditor.FresnelNode;11;-625.3026,405.9923;Inherit;True;Standard;WorldNormal;ViewDir;False;False;5;0;FLOAT3;0,0,1;False;4;FLOAT3;0,0,0;False;1;FLOAT;0;False;2;FLOAT;1;False;3;FLOAT;5;False;1;FLOAT;0
-Node;AmplifyShaderEditor.ColorNode;2;-399,-7.5;Inherit;False;Property;_Color;Color;0;0;Create;True;0;0;0;False;0;False;1,1,1,0;1,1,1,0;True;0;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.SimpleAddOpNode;12;-312.9026,322.6923;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.SaturateNode;8;-455.3028,263.2883;Inherit;False;1;0;FLOAT;0;False;1;FLOAT;0
 Node;AmplifyShaderEditor.RangedFloatNode;16;-474.456,163.6108;Inherit;False;Property;_Ambient;Ambient;2;0;Create;True;0;0;0;False;0;False;0.1;0;0;1;0;1;FLOAT;0
+Node;AmplifyShaderEditor.SimpleAddOpNode;12;-312.9026,322.6923;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
+Node;AmplifyShaderEditor.ColorNode;2;-399,-7.5;Inherit;False;Property;_Color;Color;0;0;Create;True;0;0;0;False;0;False;1,1,1,0;1,1,1,0;True;0;5;COLOR;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
 Node;AmplifyShaderEditor.SimpleMultiplyOpNode;13;-185.2026,266.2922;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
 Node;AmplifyShaderEditor.SimpleMultiplyOpNode;15;-174.1556,105.1108;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0.1;False;1;FLOAT;0
 Node;AmplifyShaderEditor.SimpleAddOpNode;14;-40.25552,155.8106;Inherit;False;2;2;0;FLOAT;0;False;1;FLOAT;0;False;1;FLOAT;0
@@ -78,6 +84,8 @@ WireConnection;6;0;4;0
 WireConnection;6;1;3;4
 WireConnection;7;0;6;0
 WireConnection;7;1;5;0
+WireConnection;11;2;19;0
+WireConnection;11;3;18;0
 WireConnection;8;0;7;0
 WireConnection;12;0;8;0
 WireConnection;12;1;11;0
@@ -92,4 +100,4 @@ WireConnection;17;1;14;0
 WireConnection;0;2;17;0
 WireConnection;0;9;14;0
 ASEEND*/
-//CHKSM=86515DAAD65BC1CD3F21D94E10AE17604D98D73F
+//CHKSM=4E3FD15B5305CA05F7E7976FB36332D33E9CB89B
