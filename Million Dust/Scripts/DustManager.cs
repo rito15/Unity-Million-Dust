@@ -46,12 +46,22 @@ namespace Rito.MillionDust
         [SerializeField] private float dustScale = 1f;           // 먼지 크기
 
         [Header("Physics Options")]
+        [Range(-20f, 20f)]
+        [SerializeField] private float gravityX = 0;
+
+        [Range(-20f, 20f)]
+        [SerializeField] private float gravityY = -9.8f;
+
+        [Range(-20f, 20f)]
+        [SerializeField] private float gravityZ = 0;
+
+        [Space]
         [Range(0f, 20f)]
         [SerializeField] private float mass = 1f;           // 먼지 질량
-        [Range(0f, 20f)]
-        [SerializeField] private float gravityForce = 9.8f; // 중력 강도
-        [Range(0f, 100f)]
+
+        [Range(0f, 10f)]
         [SerializeField] private float airResistance = 1f;  // 공기 저항력
+
         [Range(0f, 1f)]
         [SerializeField] private float elasticity = 0.6f;   // 충돌 탄성력
 
@@ -77,7 +87,8 @@ namespace Rito.MillionDust
 
         private int kernelPopulateID;
         private int kernelUpdateID;
-        private int kernelBlowID;
+        private int kernelVacuumUpID;
+        private int kernelEmitID;
         private int kernelGroupSizeX;
 
         private float deltaTime;
@@ -99,7 +110,10 @@ namespace Rito.MillionDust
             deltaTime = Time.deltaTime;
 
             HandlePlayerInputs();
-            UpdateComputeShader();
+            UpdateCommonVariables();
+            UpdateVacuumCleaner();
+            UpdateEmitter();
+            UpdatePhysics();
 
             dustMaterial.SetFloat("_Scale", dustScale);
             Graphics.DrawMeshInstancedIndirect(dustMesh, 0, dustMaterial, frustumOverlapBounds, argsBuffer);
@@ -139,7 +153,8 @@ namespace Rito.MillionDust
 
             kernelPopulateID = dustCompute.FindKernel("Populate");
             kernelUpdateID = dustCompute.FindKernel("Update");
-            kernelBlowID = dustCompute.FindKernel("Blow");
+            kernelVacuumUpID = dustCompute.FindKernel("VacuumUp");
+            kernelEmitID = dustCompute.FindKernel("Emit");
 
             dustCompute.GetKernelThreadGroupSizes(kernelUpdateID, out uint tx, out _, out _);
             kernelGroupSizeX = Mathf.CeilToInt((float)instanceNumber / tx);
@@ -192,12 +207,16 @@ namespace Rito.MillionDust
             dustCompute.SetBuffer(kernelPopulateID, "dustBuffer", dustBuffer);
 
             dustCompute.SetBuffer(kernelUpdateID, "dustBuffer", dustBuffer);
-            dustCompute.SetBuffer(kernelUpdateID, "aliveNumberBuffer", aliveNumberBuffer);
             dustCompute.SetBuffer(kernelUpdateID, "velocityBuffer", dustVelocityBuffer);
+            dustCompute.SetBuffer(kernelUpdateID, "aliveNumberBuffer", aliveNumberBuffer);
 
-            dustCompute.SetBuffer(kernelBlowID, "dustBuffer", dustBuffer);
-            dustCompute.SetBuffer(kernelBlowID, "aliveNumberBuffer", aliveNumberBuffer);
-            dustCompute.SetBuffer(kernelBlowID, "velocityBuffer", dustVelocityBuffer);
+            dustCompute.SetBuffer(kernelVacuumUpID, "dustBuffer", dustBuffer);
+            dustCompute.SetBuffer(kernelVacuumUpID, "velocityBuffer", dustVelocityBuffer);
+            dustCompute.SetBuffer(kernelVacuumUpID, "aliveNumberBuffer", aliveNumberBuffer);
+
+            dustCompute.SetBuffer(kernelEmitID, "dustBuffer", dustBuffer);
+            dustCompute.SetBuffer(kernelEmitID, "velocityBuffer", dustVelocityBuffer);
+            dustCompute.SetBuffer(kernelEmitID, "aliveNumberBuffer", aliveNumberBuffer);
         }
 
         /// <summary> 먼지들을 영역 내의 무작위 위치에 생성한다. </summary>
@@ -222,6 +241,7 @@ namespace Rito.MillionDust
         *                               Update Methods
         ***********************************************************************/
         #region .
+        /// <summary> 사용자 입력 처리 </summary>
         private void HandlePlayerInputs()
         {
             // 모드 변경
@@ -251,32 +271,10 @@ namespace Rito.MillionDust
             bool run = controller.MouseLocked && Input.GetKey(runKey);
             cleaner.IsRunning = run && mode == SimulationMode.VacuumCleaner;
             emitter.IsRunning = run && mode == SimulationMode.DustEmitter;
-
-            if (cleaner.IsRunning) UpdateCleanerVariables();
-            if (emitter.IsRunning) UpdateEmitterVariables();
         }
 
-        private void UpdateCleanerVariables()
-        {
-            dustCompute.SetFloat("cleanerSqrForce", cleaner.SqrForce);
-            dustCompute.SetFloat("cleanerSqrDist", cleaner.SqrDistance);
-            dustCompute.SetFloat("cleanerSqrDeathRange", cleaner.SqrDeathRange);
-            dustCompute.SetFloat("cleanerDotThreshold", Mathf.Cos(cleaner.AngleRad));
-        }
-
-        private void UpdateEmitterVariables()
-        {
-            // * dustCount : 게임 시작 시 전달
-
-            dustCompute.SetFloat("time", Time.time);
-            dustCompute.SetMatrix("controllerMatrix", controller.LocalToWorld);
-            dustCompute.SetFloat("emitterForce", emitter.Force);
-            dustCompute.SetFloat("emitterAngleRad", emitter.AngleRad);
-
-            dustCompute.Dispatch(kernelBlowID, kernelGroupSizeX, 1, 1);
-        }
-
-        private void UpdateComputeShader()
+        /// <summary> 컴퓨트 쉐이더 공통 변수들 업데이트 </summary>
+        private void UpdateCommonVariables()
         {
             dustCompute.SetFloat("deltaTime", deltaTime);
 
@@ -284,16 +282,46 @@ namespace Rito.MillionDust
             dustCompute.SetVector("controllerPos", controller.Position);
             dustCompute.SetVector("controllerForward", controller.Forward);
 
-            // 청소기
-            dustCompute.SetInt("cleanerRunning", cleaner.IsRunning ? TRUE : FALSE);
-
             // 물리
+            dustCompute.SetVector("gravity", new Vector3(gravityX, gravityY, gravityZ));
             dustCompute.SetFloat("radius", dustScale);
             dustCompute.SetFloat("mass", mass);
-            dustCompute.SetFloat("gravityForce", gravityForce);
             dustCompute.SetFloat("airResistance", airResistance);
             dustCompute.SetFloat("elasticity", elasticity);
+        }
 
+        /// <summary> 청소기 커널 실행 </summary>
+        private void UpdateVacuumCleaner()
+        {
+            if (!cleaner.IsRunning) return;
+
+            dustCompute.SetFloat("cleanerSqrForce", cleaner.SqrForce);
+            dustCompute.SetFloat("cleanerSqrDist", cleaner.SqrDistance);
+            dustCompute.SetFloat("cleanerSqrDeathRange", cleaner.SqrDeathRange);
+            dustCompute.SetFloat("cleanerDotThreshold", Mathf.Cos(cleaner.AngleRad));
+
+            dustCompute.Dispatch(kernelVacuumUpID, kernelGroupSizeX, 1, 1);
+        }
+
+        /// <summary> 방출기 커널 실행 </summary>
+        private void UpdateEmitter()
+        {
+            if (!emitter.IsRunning) return;
+
+            // * dustCount : 게임 시작 시 전달
+
+            dustCompute.SetFloat("time", Time.time);
+            dustCompute.SetMatrix("controllerMatrix", controller.LocalToWorld);
+            dustCompute.SetFloat("emitterForce", emitter.Force);
+            dustCompute.SetFloat("emitterDist", emitter.Distance);
+            dustCompute.SetFloat("emitterAngleRad", emitter.AngleRad);
+
+            dustCompute.Dispatch(kernelEmitID, kernelGroupSizeX, 1, 1);
+        }
+
+        /// <summary> 물리 업데이트 </summary>
+        private void UpdatePhysics()
+        {
             dustCompute.Dispatch(kernelUpdateID, kernelGroupSizeX, 1, 1);
 
             aliveNumberBuffer.GetData(aliveNumberArray);

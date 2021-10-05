@@ -1,7 +1,8 @@
 ﻿
 #pragma kernel Populate
 #pragma kernel Update
-#pragma kernel Blow
+#pragma kernel VacuumUp
+#pragma kernel Emit
 
 #include "Type Definitions.cginc"
 #include "Math Functions.cginc"
@@ -25,10 +26,6 @@
 #define TAU 6.28318530
 
 /*******************************************************************
-/*                            Constants
-/*******************************************************************/
-
-/*******************************************************************
 /*                            Variables
 /*******************************************************************/
 RWStructuredBuffer<Dust> dustBuffer;        // 먼지 위치, 생존 여부
@@ -45,7 +42,6 @@ float3 controllerPos;     // 월드 위치
 float3 controllerForward; // 전방 벡터
 
 /* Vacuum Cleaner */
-int cleanerRunning;         // 청소기 가동 여부
 float cleanerSqrDist;       // 먼지 흡입 범위(반지름) - 제곱
 float cleanerSqrDeathRange; // 먼지 소멸 범위(반지름) - 제곱
 float cleanerSqrForce;      // 빨아들이는 힘 - 제곱
@@ -55,13 +51,14 @@ float cleanerDotThreshold;  // 진공 청소기 원뿔 영역 내적 범위
 uint dustCount;        // 먼지 개수
 float time;            // Time.time
 float emitterForce;    // 방출 강도
+float emitterDist;     // 방출 거리
 float emitterAngleRad; // 방출 각도
 float4x4 controllerMatrix; //  localToWorld
 
 /* Physics(Update) */
+float3 gravity;      // 중력 가속도
 float radius;        // 먼지 반지름
 float mass;          // 질량
-float gravityForce;  // -Y 방향 중력 강도
 float airResistance; // 공기 저항력
 float elasticity;    // 탄성력
 
@@ -91,55 +88,28 @@ void Populate (uint3 id : SV_DispatchThreadID)
     dustBuffer[i].isAlive = TRUE;
 }
 
-// 1 - 실시간 업데이트
+// 1 - 실시간 업데이트(물리)
 [numthreads(64,1,1)]
 void Update (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
     if(dustBuffer[i].isAlive == FALSE) return;
+    if(i >= dustCount) return;
 
-    bool sucking = false;
-    float3 F = 0; // 힘 합 벡터
     float3 A = 0; // 가속도 합 벡터
-    
-    // ===================================================
-    //                  청소기로 먼지 흡수
-    // ===================================================
-    float3 currPos = dustBuffer[i].position;  // 현재 프레임 먼지 위치
-    float3 currToHead = (controllerPos - currPos);  // 청소기 입구 -> 먼지
-    float sqrDist = SqrMagnitude(currToHead); // 청소기 입구 <-> 먼지 사이 거리 제곱
-
-    // 먼지 이동
-    if (cleanerRunning == TRUE && sqrDist < cleanerSqrDist)
-    {
-        float3 dustToHeadDir = normalize(currToHead); // 먼지 -> 청소기 입구 방향
-        float dotValue = dot(controllerForward, -dustToHeadDir);
-
-        // 원뿔 범위 내에 있을 경우 빨아들이기
-        if(dotValue > cleanerDotThreshold)
-        {
-            float suctionForce = cleanerSqrForce / sqrDist;
-
-            // 빨아들이는 힘
-            F += dustToHeadDir * suctionForce * dotValue;
-
-            sucking = true;
-        }
-    }
     
     // F = m * a
     // v = a * t
 
     // ===================================================
-    //                    가속도 계산
+    //                    속도 계산
     // ===================================================
-    // [1] 외력
-    A += F / mass;
+    //A += F / mass;
 
-    // [2] 중력
-    A += float3(0, -gravityForce, 0);
+    // [1] 중력
+    A += gravity;
 
-    // [3] 공기 저항
+    // [2] 공기 저항
     A -= velocityBuffer[i] * airResistance;
 
     // 속도 적용 : V = A * t
@@ -149,6 +119,7 @@ void Update (uint3 id : SV_DispatchThreadID)
     //              이동 시뮬레이션, 충돌 검사
     // ===================================================
     // 다음 프레임 위치 계산 : S = S0 + V * t
+    float3 currPos = dustBuffer[i].position;
     float3 nextPos = currPos + velocityBuffer[i] * deltaTime;
 
     // [1] Cube 영역 제한
@@ -171,12 +142,57 @@ void Update (uint3 id : SV_DispatchThreadID)
     //    nextPos = adjNextPos;
     //    velocityBuffer[i] = outDir * length(velocityBuffer[i]) * 0.8;
     //}
+    
+    // 다음 위치 적용
+    dustBuffer[i].position = nextPos;
+}
 
-    // [3] 입구로 완전히 빨아들인 경우, 먼지 파괴
-    if(sucking)
+// 2 - 진공 청소기로 빨아들이기
+[numthreads(64,1,1)]
+void VacuumUp (uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x;
+    if(dustBuffer[i].isAlive == FALSE) return;
+    if(i >= dustCount) return;
+
+    float3 F = 0; // 힘 합 벡터
+    bool flag = false;
+
+    float3 currPos = dustBuffer[i].position;  // 현재 프레임 먼지 위치
+    float3 currToHead = (controllerPos - currPos);  // 청소기 입구 -> 먼지
+    float sqrDist = SqrMagnitude(currToHead); // 청소기 입구 <-> 먼지 사이 거리 제곱
+
+    // 원뿔 범위 및 힘 계산
+    if (sqrDist < cleanerSqrDist)
     {
-        float3 headToNext = nextPos - controllerPos;
+        float3 dustToHeadDir = normalize(currToHead); // 먼지 -> 청소기 입구 방향
+        float dotValue = dot(controllerForward, -dustToHeadDir);
 
+        // 원뿔 범위 내에 있을 경우 빨아들이기
+        if(dotValue > cleanerDotThreshold)
+        {
+            float force = cleanerSqrForce / sqrDist;
+
+            // 빨아들이는 힘
+            F += dustToHeadDir * force * dotValue;
+
+            flag = true;
+        }
+    }
+
+    // 속도 계산
+    if(flag)
+    {
+        // 가속도
+        float3 A = F / mass;
+
+        // 속도
+        velocityBuffer[i] += A * deltaTime;
+
+        // 다음 프레임 위치 예측 : S = S0 + V * t
+        float3 nextPos = currPos + velocityBuffer[i] * deltaTime;
+
+        float3 headToNext = nextPos - controllerPos;
         float3 headToCurrDir = normalize(-currToHead);
         float3 headToNextDir = normalize(headToNext);
 
@@ -185,20 +201,17 @@ void Update (uint3 id : SV_DispatchThreadID)
         {
             // 다음 프레임에 원뿔 밖으로 나가거나 입구에 근접하면 파괴
             if(dot(controllerForward, headToNextDir) < cleanerDotThreshold ||
-               SqrMagnitude(headToNext) < cleanerSqrDeathRange)
+                SqrMagnitude(headToNext) < cleanerSqrDeathRange)
             {
                 DestroyDust(i);
             }
         }
     }
-    
-    // 다음 위치 적용
-    dustBuffer[i].position = nextPos;
 }
 
-// 2 - 죽었던 먼지들 살려서 발사
+// 3 - 죽었던 먼지들 살려서 발사
 [numthreads(64,1,1)]
-void Blow (uint3 id : SV_DispatchThreadID)
+void Emit (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
     if(dustBuffer[i].isAlive == TRUE) return;
@@ -221,8 +234,12 @@ void Blow (uint3 id : SV_DispatchThreadID)
     float3 localDir = float3(randomCircle.x, randomCircle.y, 1);
     float3 worldDir = mul(controllerMatrix, float4(localDir, 0)).xyz;
     
+    float3 F = worldDir * emitterForce * emitterDist;
+    float3 A = F / mass;
+    float3 V = A * deltaTime;
+
     dustBuffer[i].position = controllerPos;        // 청소기 입구로 위치 이동
-    velocityBuffer[i] = (worldDir) * emitterForce; // 발사 방향 설정
+    velocityBuffer[i] = V;
 
     // 먼지 되살리기
     dustBuffer[i].isAlive = TRUE;

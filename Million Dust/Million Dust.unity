@@ -529,8 +529,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   coneMaterial: {fileID: 2100000, guid: 367b14cad09159d42aaa2db0961281b5, type: 2}
   isRunning: 0
-  force: 50
-  distance: 5
+  force: 100
+  distance: 25
   angle: 45
   deathRange: 2
 --- !u!1 &698902742
@@ -1244,8 +1244,8 @@ MonoBehaviour:
   coneMaterial: {fileID: 2100000, guid: 012fb628776ba904392ebf8ebf896c5d, type: 2}
   isRunning: 0
   force: 50
-  distance: 5
-  angle: 45
+  distance: 50
+  angle: 30
 --- !u!1 &1662239500
 GameObject:
   m_ObjectHideFlags: 0
@@ -1272,7 +1272,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1662239500}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2, z: -20}
+  m_LocalPosition: {x: 0, y: 0, z: -20}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 999038417}
@@ -1461,8 +1461,10 @@ MonoBehaviour:
   distributionRange: 100
   distributionHeight: 25
   dustScale: 0.4
+  gravityX: 0
+  gravityY: -9.8
+  gravityZ: 0
   mass: 1
-  gravityForce: 9.8
   airResistance: 1
   elasticity: 0.6
   dustCompute: {fileID: 7200000, guid: a725fe981ed6cbf45a47ee3e356c76dc, type: 3}

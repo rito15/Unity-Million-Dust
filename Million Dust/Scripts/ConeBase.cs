@@ -30,6 +30,7 @@ namespace Rito.MillionDust
 
         public bool IsRunning { get => isRunning; set => isRunning = value; }
         public float SqrDistance => distance * distance;
+        public float Distance => distance;
         public float SqrForce => force * force;
         public float Force => force;
         public float AngleRad => angle * Mathf.Deg2Rad;
