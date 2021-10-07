@@ -23,12 +23,6 @@ namespace Rito.MillionDust
             public int isAlive;
         }
 
-        private enum SimulationMode
-        {
-            VacuumCleaner,
-            DustEmitter
-        }
-
         [Header("Dust")]
         [SerializeField] private Mesh dustMesh;         // 먼지 메시
         [SerializeField] private Material dustMaterial; // 먼지 마테리얼
@@ -83,7 +77,7 @@ namespace Rito.MillionDust
         private KeyCode changeModeKey = KeyCode.Mouse2;
         private KeyCode runKey = KeyCode.Mouse0;
         private KeyCode showCursorKey = KeyCode.Mouse1;
-        private SimulationMode mode;
+        private ConeBase currentCone;
 
 
         private Bounds worldBounds;
@@ -106,6 +100,7 @@ namespace Rito.MillionDust
         private void Start()
         {
             Init();
+            InitConeMode();
             InitBuffers();
             SetBuffersToShaders();
             PopulateDusts();
@@ -191,12 +186,16 @@ namespace Rito.MillionDust
 
             dustCompute.SetInt("dustCount", instanceNumber);
 
-            // Mode
-            mode = SimulationMode.VacuumCleaner;
-            cleaner.ShowCone();
+            CalculateWorldBounds();
+        }
+
+        private void InitConeMode()
+        {
+            cleaner.HideCone();
             emitter.HideCone();
 
-            CalculateWorldBounds();
+            currentCone = cleaner;
+            currentCone.ShowCone();
         }
 
         /// <summary> 컴퓨트 버퍼들 생성 </summary>
@@ -282,20 +281,15 @@ namespace Rito.MillionDust
             // 모드 변경
             if (Input.GetKeyDown(changeModeKey))
             {
-                switch (mode)
-                {
-                    case SimulationMode.VacuumCleaner:
-                        mode = SimulationMode.DustEmitter;
-                        cleaner.HideCone();
-                        emitter.ShowCone();
-                        break;
+                currentCone.HideCone();
 
-                    case SimulationMode.DustEmitter:
-                        mode = SimulationMode.VacuumCleaner;
-                        emitter.HideCone();
-                        cleaner.ShowCone();
-                        break;
-                }
+                if (currentCone == cleaner)
+                    currentCone = emitter;
+
+                else if (currentCone == emitter)
+                    currentCone = cleaner;
+
+                currentCone.ShowCone();
             }
 
             // 마우스 보이기 & 숨기기
@@ -304,8 +298,8 @@ namespace Rito.MillionDust
 
             // 동작 수행
             bool run = controller.MouseLocked && Input.GetKey(runKey);
-            cleaner.IsRunning = run && mode == SimulationMode.VacuumCleaner;
-            emitter.IsRunning = run && mode == SimulationMode.DustEmitter;
+            cleaner.IsRunning = run && currentCone == cleaner;
+            emitter.IsRunning = run && currentCone == emitter;
         }
 
         /// <summary> 컴퓨트 쉐이더 공통 변수들 업데이트 </summary>
