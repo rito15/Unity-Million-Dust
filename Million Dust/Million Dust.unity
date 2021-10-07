@@ -909,7 +909,9 @@ MonoBehaviour:
   dustMaterial: {fileID: 2100000, guid: 580e99519544d7049bc9d6a36bb4e96b, type: 2}
   dustCount: 300000
   dustScale: 0.4
-  spawnBottomCenter: {x: 0, y: 25, z: 0}
+  dustColorA: {r: 0, g: 0, b: 0, a: 1}
+  dustColorB: {r: 0.6769233, g: 0, b: 1, a: 1}
+  spawnBottomCenter: {x: 0, y: 5, z: 0}
   spawnSize: {x: 100, y: 10, z: 100}
   worldBottomCenter: {x: 0, y: 0, z: 0}
   worldSize: {x: 100, y: 25, z: 100}

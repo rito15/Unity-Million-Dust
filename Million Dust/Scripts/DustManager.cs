@@ -28,9 +28,15 @@ namespace Rito.MillionDust
         [Header("Dust")]
         [SF] private Mesh dustMesh;
         [SF] private Material dustMaterial;
+
+        [Space(4f)]
         [SF] private int dustCount = 100000; // 생성할 먼지 개수
         [Range(0.01f, 2f)]
         [SF] private float dustScale = 1f;
+
+        [Space(4f)]
+        [SF] private Color dustColorA = Color.black;
+        [SF] private Color dustColorB = Color.gray;
 
         [Header("Spawn")]
         [SF] private Vector3 spawnBottomCenter = new Vector3(0, 0, 0); // 분포 중심 하단 위치(피벗)
@@ -74,6 +80,7 @@ namespace Rito.MillionDust
         private ComputeBuffer dustVelocityBuffer; // 먼지 현재 속도 버퍼
         private ComputeBuffer argsBuffer;         // 먼지 렌더링 데이터 버퍼
         private ComputeBuffer aliveNumberBuffer;  // 생존 먼지 개수 버퍼
+        private ComputeBuffer dustColorBuffer;    // 먼지 색상 버퍼
 
 
         // Private Variables
@@ -130,10 +137,11 @@ namespace Rito.MillionDust
 
         private void OnDestroy()
         {
-            dustBuffer.Release();
-            argsBuffer.Release();
-            aliveNumberBuffer.Release();
-            dustVelocityBuffer.Release();
+            if (dustBuffer != null) dustBuffer.Release();
+            if (argsBuffer != null) argsBuffer.Release();
+            if (aliveNumberBuffer != null) aliveNumberBuffer.Release();
+            if (dustVelocityBuffer != null) dustVelocityBuffer.Release();
+            if (dustColorBuffer != null) dustColorBuffer.Release();
         }
 
         private GUIStyle boxStyle;
@@ -233,6 +241,9 @@ namespace Rito.MillionDust
             // Dust Buffer
             dustBuffer = new ComputeBuffer(dustCount, sizeof(float) * 3 + sizeof(int));
 
+            // Color Buffer
+            dustColorBuffer = new ComputeBuffer(dustCount, sizeof(float) * 3);
+
             // Dust Velocity Buffer
             dustVelocityBuffer = new ComputeBuffer(dustCount, sizeof(float) * 3);
 
@@ -246,7 +257,9 @@ namespace Rito.MillionDust
         private void SetBuffersToShaders()
         {
             dustMaterial.SetBuffer("_DustBuffer", dustBuffer);
+            dustMaterial.SetBuffer("_DustColorBuffer", dustColorBuffer);
             dustCompute.SetBuffer(kernelPopulateID, "dustBuffer", dustBuffer);
+            dustCompute.SetBuffer(kernelPopulateID, "dustColorBuffer", dustColorBuffer);
 
             dustCompute.SetBuffer(kernelUpdateID, "dustBuffer", dustBuffer);
             dustCompute.SetBuffer(kernelUpdateID, "velocityBuffer", dustVelocityBuffer);
@@ -272,6 +285,8 @@ namespace Rito.MillionDust
 
             dustCompute.SetVector("spawnBoundsMin", spawnBounds.min);
             dustCompute.SetVector("spawnBoundsMax", spawnBounds.max);
+            dustCompute.SetVector("dustColorA", dustColorA);
+            dustCompute.SetVector("dustColorB", dustColorB);
 
             dustCompute.GetKernelThreadGroupSizes(kernelPopulateID, out uint tx, out _, out _);
             int groupSizeX = Mathf.CeilToInt((float)dustCount / tx);

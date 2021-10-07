@@ -31,6 +31,7 @@
 /*                            Variables
 /*******************************************************************/
 RWStructuredBuffer<Dust> dustBuffer;        // 먼지 위치, 생존 여부
+RWStructuredBuffer<half3> dustColorBuffer;  // 먼지 색상 RGB
 RWStructuredBuffer<float3> velocityBuffer;  // 먼지 속도
 RWStructuredBuffer<uint> aliveNumberBuffer; // 생존한 먼지 개수
 
@@ -43,6 +44,10 @@ float3 spawnBoundsMax; // 먼지 생성 영역 - 최대 지점
 float3 worldBoundsMin; // 월드 제한 영역 - 최소 지점
 float3 worldBoundsMax; // 월드 제한 영역 - 최대 지점
 float deltaTime;
+
+/* Populate */
+half3 dustColorA; // 무작위 색상 A
+half3 dustColorB; // 무작위 색상 B
 
 /* Controller */
 float3 controllerPos;     // 월드 위치
@@ -93,11 +98,16 @@ void Populate (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
     
+    // [1] 위치
     float width = spawnBoundsMax.x - spawnBoundsMin.x;
-    float seed = i / (width * width * 179.823);
-
+    float seed = i / (width * width);
     dustBuffer[i].position = RandomRange13(seed, spawnBoundsMin, spawnBoundsMax);
     dustBuffer[i].isAlive = TRUE;
+
+    // [2] 색상
+    float2 seed2d = float2(i % width, i / width);
+    float t = Random21(seed2d);
+    dustColorBuffer[i] = lerp(dustColorA, dustColorB, t);
 }
 
 // 1 - 실시간 업데이트(물리)
