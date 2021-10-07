@@ -39,6 +39,12 @@
 
 <img src="https://user-images.githubusercontent.com/42164422/135858942-1c171386-24c0-48ee-b3f5-9872ed8004d8.gif" width=600/>
 
+
+- 바람 불기
+<img src="https://user-images.githubusercontent.com/42164422/136384251-6e3abe3f-5734-4f14-aa64-a6c7260cb64c.gif" width=600/>
+
+<img src="https://user-images.githubusercontent.com/42164422/136384259-8ef62ab4-6359-4c30-b954-bec307bf7ceb.gif" width=600/>
+
 <!--
 <img src="" width=600/>
 -->
