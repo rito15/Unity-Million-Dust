@@ -175,15 +175,17 @@ namespace Rito.MillionDust
         /// <summary> 컴퓨트 버퍼들 생성 </summary>
         private void InitBuffers()
         {
-            /* [Note]
-             * 
-             * argsBuffer
-             * - IndirectArguments로 사용되는 컴퓨트 버퍼의 stride는 20byte 이상이어야 한다.
-             * - 따라서 파라미터가 앞의 2개만 필요하지만, 뒤에 의미 없는 파라미터 3개를 더 넣어준다.
-             */
+            int subMeshIndex = 0;
 
             // Args Buffer
-            uint[] argsData = new uint[] { dustMesh.GetIndexCount(0), (uint)instanceNumber, 0, 0, 0 };
+            uint[] argsData = new uint[] 
+            {
+                (uint)dustMesh.GetIndexCount(subMeshIndex),
+                (uint)instanceNumber,
+                (uint)dustMesh.GetIndexStart(subMeshIndex),
+                (uint)dustMesh.GetBaseVertex(subMeshIndex),
+                0 
+            };
             argsBuffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
             argsBuffer.SetData(argsData);
 
