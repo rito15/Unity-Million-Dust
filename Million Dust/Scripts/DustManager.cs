@@ -44,6 +44,7 @@ namespace Rito.MillionDust
         [Header("World")]
         [SerializeField] private Vector3 worldBottomCenter = new Vector3(0, 0, 0);
         [SerializeField] private Vector3 worldSize = new Vector3(100, 25, 100);
+        [SerializeField] private Material worldMaterial;
 
         [Header("Player")]
         [SerializeField] private PlayerController controller;
@@ -108,6 +109,7 @@ namespace Rito.MillionDust
             InitBuffers();
             SetBuffersToShaders();
             PopulateDusts();
+            CreateWorldBoundsMesh();
         }
 
         private void Update()
@@ -147,6 +149,29 @@ namespace Rito.MillionDust
 
             GUI.Box(r, $"{aliveNumber:#,###,##0} / {instanceNumber:#,###,##0}", boxStyle);
         }
+
+        private void OnDrawGizmos()
+        {
+            if (Application.isPlaying) return;
+
+            CalculateWorldBounds();
+
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireCube(worldBounds.center, worldBounds.size);
+        }
+        #endregion
+        /***********************************************************************
+        *                               Tiny Methods
+        ***********************************************************************/
+        #region .
+        private void CalculateWorldBounds()
+        {
+            Vector3 boundsCenter = worldBottomCenter + Vector3.up * worldSize.y * 0.5f;
+            worldBounds = new Bounds(
+                boundsCenter,
+                worldSize
+            );
+        }
         #endregion
         /***********************************************************************
         *                               Init Methods
@@ -170,6 +195,8 @@ namespace Rito.MillionDust
             mode = SimulationMode.VacuumCleaner;
             cleaner.ShowCone();
             emitter.HideCone();
+
+            CalculateWorldBounds();
         }
 
         /// <summary> 컴퓨트 버퍼들 생성 </summary>
@@ -199,13 +226,6 @@ namespace Rito.MillionDust
             aliveNumberBuffer = new ComputeBuffer(1, sizeof(uint));
             aliveNumberArray = new uint[] { (uint)instanceNumber };
             aliveNumberBuffer.SetData(aliveNumberArray);
-
-            // 카메라 프러스텀이 이 영역과 겹치지 않으면 렌더링되지 않는다.
-            Vector3 boundsCenter = worldBottomCenter + Vector3.up * worldSize.y * 0.5f;
-            worldBounds = new Bounds(
-                boundsCenter,
-                worldSize
-            );
         }
 
         /// <summary> 컴퓨트 버퍼들을 쉐이더에 할당 </summary>
@@ -240,6 +260,16 @@ namespace Rito.MillionDust
             int groupSizeX = Mathf.CeilToInt((float)instanceNumber / tx);
 
             dustCompute.Dispatch(kernelPopulateID, groupSizeX, 1, 1);
+        }
+
+        /// <summary> 월드 영역 큐브 메시 생성 </summary>
+        private void CreateWorldBoundsMesh()
+        {
+            GameObject go = new GameObject("World");
+            var mf = go.AddComponent<MeshFilter>();
+            var mr = go.AddComponent<MeshRenderer>();
+            mf.sharedMesh = MeshMaker.CreateWorldBoundsMesh(worldBounds);
+            mr.sharedMaterial = worldMaterial;
         }
         #endregion
         /***********************************************************************

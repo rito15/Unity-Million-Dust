@@ -72,42 +72,7 @@ namespace Rito.MillionDust
             mr.receiveShadows = false;
 
             MeshFilter mf = coneGO.AddComponent<MeshFilter>();
-            mf.sharedMesh = CreateConeMesh();
-        }
-
-        /// <summary> 원뿔 모양 메시 생성 </summary>
-        protected Mesh CreateConeMesh(int sample = 24)
-        {
-            Mesh mesh = new Mesh();
-            Vector3[] verts = new Vector3[sample + 1];
-            int[] tris = new int[sample * 3];
-
-            verts[0] = Vector3.zero; // 꼭짓점
-            float deltaRad = Mathf.PI * 2f / sample;
-            for (int i = 1; i <= sample; i++)
-            {
-                float r = i * deltaRad;
-                verts[i] = new Vector3(Mathf.Cos(r), Mathf.Sin(r), 1f);
-            }
-
-            int t = 0;
-            for (int i = 1; i < sample; i++)
-            {
-                tris[t] = 0;
-                tris[t + 1] = i + 1;
-                tris[t + 2] = i;
-                t += 3;
-            }
-            tris[t] = 0;
-            tris[t + 1] = 1;
-            tris[t + 2] = sample;
-
-            mesh.vertices = verts;
-            mesh.triangles = tris;
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-
-            return mesh;
+            mf.sharedMesh = MeshMaker.CreateConeMesh();
         }
     }
 }
