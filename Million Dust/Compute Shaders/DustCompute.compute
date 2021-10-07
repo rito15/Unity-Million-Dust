@@ -3,6 +3,7 @@
 #pragma kernel Update
 #pragma kernel VacuumUp
 #pragma kernel Emit
+#pragma kernel BlowWind
 
 #include "Type Definitions.cginc"
 #include "Math Functions.cginc"
@@ -24,6 +25,7 @@
 #define TRUE 1
 #define FALSE 0
 #define TAU 6.28318530
+#define NUM_THREADS_HEADER numthreads(64,1,1)
 
 /*******************************************************************
 /*                            Variables
@@ -43,6 +45,13 @@ float deltaTime;
 float3 controllerPos;     // 월드 위치
 float3 controllerForward; // 전방 벡터
 
+/* Physics(Update) */
+float3 gravity;      // 중력 가속도
+float radius;        // 먼지 반지름
+float mass;          // 질량
+float airResistance; // 공기 저항력
+float elasticity;    // 탄성력
+
 /* Vacuum Cleaner */
 float cleanerSqrDist;       // 먼지 흡입 범위(반지름) - 제곱
 float cleanerSqrDeathRange; // 먼지 소멸 범위(반지름) - 제곱
@@ -57,12 +66,10 @@ float emitterDist;     // 방출 거리
 float emitterAngleRad; // 방출 각도
 float4x4 controllerMatrix; //  localToWorld
 
-/* Physics(Update) */
-float3 gravity;      // 중력 가속도
-float radius;        // 먼지 반지름
-float mass;          // 질량
-float airResistance; // 공기 저항력
-float elasticity;    // 탄성력
+/* Blower */
+float blowerSqrDist;       // 영향 범위(반지름) - 제곱
+float blowerSqrForce;      // 미는 힘 - 제곱
+float blowerDotThreshold;  // 원뿔 영역 내적 범위
 
 /*******************************************************************
 /*                            Functions
@@ -78,7 +85,7 @@ void DestroyDust(uint i)
 /*                             Kernels
 /*******************************************************************/
 // 0 - 초기 생성
-[numthreads(64,1,1)]
+[NUM_THREADS_HEADER]
 void Populate (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
@@ -91,7 +98,7 @@ void Populate (uint3 id : SV_DispatchThreadID)
 }
 
 // 1 - 실시간 업데이트(물리)
-[numthreads(64,1,1)]
+[NUM_THREADS_HEADER]
 void Update (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
@@ -150,7 +157,7 @@ void Update (uint3 id : SV_DispatchThreadID)
 }
 
 // 2 - 진공 청소기로 빨아들이기
-[numthreads(64,1,1)]
+[NUM_THREADS_HEADER]
 void VacuumUp (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
@@ -160,9 +167,9 @@ void VacuumUp (uint3 id : SV_DispatchThreadID)
     float3 F = 0; // 힘 합 벡터
     bool flag = false;
 
-    float3 currPos = dustBuffer[i].position;  // 현재 프레임 먼지 위치
-    float3 currToHead = (controllerPos - currPos);  // 청소기 입구 -> 먼지
-    float sqrDist = SqrMagnitude(currToHead); // 청소기 입구 <-> 먼지 사이 거리 제곱
+    float3 currPos = dustBuffer[i].position;       // 현재 프레임 먼지 위치
+    float3 currToHead = (controllerPos - currPos); // 먼지 -> 청소기 입구
+    float sqrDist = SqrMagnitude(currToHead);      // 청소기 입구 <-> 먼지 사이 거리 제곱
 
     // 원뿔 범위 및 힘 계산
     if (sqrDist < cleanerSqrDist)
@@ -212,7 +219,7 @@ void VacuumUp (uint3 id : SV_DispatchThreadID)
 }
 
 // 3 - 죽었던 먼지들 살려서 발사
-[numthreads(64,1,1)]
+[NUM_THREADS_HEADER]
 void Emit (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
@@ -246,4 +253,34 @@ void Emit (uint3 id : SV_DispatchThreadID)
     // 먼지 되살리기
     dustBuffer[i].isAlive = TRUE;
     InterlockedAdd(aliveNumberBuffer[0], 1);
+}
+
+// 4 - 바람 불기
+[NUM_THREADS_HEADER]
+void BlowWind (uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x;
+    if(dustBuffer[i].isAlive == FALSE) return;
+    if(i >= dustCount) return;
+
+    float3 dustPos = dustBuffer[i].position;        // 현재 프레임 먼지 위치
+    float3 headToDust = (dustPos - controllerPos);  // 입구 -> 먼지
+    float sqrDist = SqrMagnitude(headToDust);       // 입구<-> 먼지 사이 거리 제곱
+
+    // 구형 범위 내에 포함되는 경우
+    if (sqrDist < blowerSqrDist)
+    {
+        float3 headToDustDir = normalize(headToDust); // 입구 -> 먼지 방향
+        float dotValue = dot(controllerForward, headToDustDir);
+
+        // 원뿔 범위 내에 포함되는 경우, 밀쳐내기
+        if(dotValue > blowerDotThreshold)
+        {
+            float force = blowerSqrForce / sqrt(sqrDist);
+
+            float3 F = headToDustDir * force * dotValue;
+            float3 A = F / mass;
+            velocityBuffer[i] += A * deltaTime;
+        }
+    }
 }

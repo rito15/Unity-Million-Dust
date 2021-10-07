@@ -8,7 +8,7 @@ using System;
 
 namespace Rito.MillionDust
 {
-    public class DustEmitter : ConeBase
+    public class DustEmitter : Cone
     {
 
     }

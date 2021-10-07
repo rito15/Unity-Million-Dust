@@ -11,6 +11,8 @@ using System.Threading;
 
 namespace Rito.MillionDust
 {
+    using SF = UnityEngine.SerializeField;
+
     [DisallowMultipleComponent]
     public class DustManager : MonoBehaviour
     {
@@ -24,74 +26,74 @@ namespace Rito.MillionDust
         }
 
         [Header("Dust")]
-        [SerializeField] private Mesh dustMesh;         // 먼지 메시
-        [SerializeField] private Material dustMaterial; // 먼지 마테리얼
-        [SerializeField] private int instanceNumber = 100000;    // 생성할 먼지 개수
+        [SF] private Mesh dustMesh;
+        [SF] private Material dustMaterial;
+        [SF] private int dustCount = 100000; // 생성할 먼지 개수
         [Range(0.01f, 2f)]
-        [SerializeField] private float dustScale = 1f;           // 먼지 크기
+        [SF] private float dustScale = 1f;
 
         [Header("Spawn")]
-        [SerializeField] private Vector3 spawnBottomCenter = new Vector3(0, 0, 0); // 분포 중심 하단 위치(피벗)
-        [SerializeField] private Vector3 spawnSize = new Vector3(100, 25, 100);    // 분포 너비(XYZ)
+        [SF] private Vector3 spawnBottomCenter = new Vector3(0, 0, 0); // 분포 중심 하단 위치(피벗)
+        [SF] private Vector3 spawnSize = new Vector3(100, 25, 100);    // 분포 너비(XYZ)
 
         // 월드 큐브 콜라이더
         [Header("World")]
-        [SerializeField] private Vector3 worldBottomCenter = new Vector3(0, 0, 0);
-        [SerializeField] private Vector3 worldSize = new Vector3(100, 25, 100);
-        [SerializeField] private Material worldMaterial;
+        [SF] private Vector3 worldBottomCenter = new Vector3(0, 0, 0);
+        [SF] private Vector3 worldSize = new Vector3(100, 25, 100);
+        [SF] private Material worldMaterial;
 
         [Header("Player")]
-        [SerializeField] private PlayerController controller;
-        [SerializeField] private VacuumCleaner cleaner;
-        [SerializeField] private DustEmitter emitter;
+        [SF] private PlayerController controller;
+        [SF] private VacuumCleaner cleaner;
+        [SF] private Cone emitter;
+        [SF] private Cone blower;
 
         [Header("Physics")]
         [Range(-20f, 20f)]
-        [SerializeField] private float gravityX = 0;
+        [SF] private float gravityX = 0;
 
         [Range(-20f, 20f)]
-        [SerializeField] private float gravityY = -9.8f;
+        [SF] private float gravityY = -9.8f;
 
         [Range(-20f, 20f)]
-        [SerializeField] private float gravityZ = 0;
+        [SF] private float gravityZ = 0;
 
         [Space]
         [Range(0f, 20f)]
-        [SerializeField] private float mass = 1f;           // 먼지 질량
+        [SF] private float mass = 1f;           // 먼지 질량
 
         [Range(0f, 10f)]
-        [SerializeField] private float airResistance = 1f;  // 공기 저항력
+        [SF] private float airResistance = 1f;  // 공기 저항력
 
         [Range(0f, 1f)]
-        [SerializeField] private float elasticity = 0.6f;   // 충돌 탄성력
+        [SF] private float elasticity = 0.6f;   // 충돌 탄성력
 
-        [Space]
-        [SerializeField] private ComputeShader dustCompute;
+        [Header("Compute Shader")]
+        [SF] private ComputeShader dustCompute;
         private ComputeBuffer dustBuffer;         // 먼지 데이터 버퍼(위치, ...)
         private ComputeBuffer dustVelocityBuffer; // 먼지 현재 속도 버퍼
         private ComputeBuffer argsBuffer;         // 먼지 렌더링 데이터 버퍼
         private ComputeBuffer aliveNumberBuffer;  // 생존 먼지 개수 버퍼
 
 
-        // Inputs & Mode
-        private KeyCode changeModeKey = KeyCode.Mouse2;
-        private KeyCode runKey = KeyCode.Mouse0;
-        private KeyCode showCursorKey = KeyCode.Mouse1;
-        private ConeBase currentCone;
-
-
-        private Bounds worldBounds;
-
+        // Private Variables
         private uint[] aliveNumberArray;
         private int aliveNumber;
+        private float deltaTime;
+        private Bounds worldBounds;
 
+        // Inputs & Mode
+        private KeyCode runKey = KeyCode.Mouse0;
+        private KeyCode showCursorKey = KeyCode.Mouse1;
+        private Cone currentCone;
+
+        // Compute Shader Data
         private int kernelPopulateID;
         private int kernelUpdateID;
         private int kernelVacuumUpID;
         private int kernelEmitID;
+        private int kernelBlowID;
         private int kernelGroupSizeX;
-
-        private float deltaTime;
 
         /***********************************************************************
         *                               Unity Events
@@ -100,7 +102,7 @@ namespace Rito.MillionDust
         private void Start()
         {
             Init();
-            InitConeMode();
+            InitCones();
             InitBuffers();
             SetBuffersToShaders();
             PopulateDusts();
@@ -115,6 +117,7 @@ namespace Rito.MillionDust
             UpdateCommonVariables();
             UpdateVacuumCleaner();
             UpdateEmitter();
+            UpdateBlower();
             UpdatePhysics();
 
             dustMaterial.SetFloat("_Scale", dustScale);
@@ -142,7 +145,7 @@ namespace Rito.MillionDust
             float scHeight = Screen.height;
             Rect r = new Rect(scWidth * 0.04f, scHeight * 0.04f, scWidth * 0.25f, scHeight * 0.05f);
 
-            GUI.Box(r, $"{aliveNumber:#,###,##0} / {instanceNumber:#,###,##0}", boxStyle);
+            GUI.Box(r, $"{aliveNumber:#,###,##0} / {dustCount:#,###,##0}", boxStyle);
         }
 
         private void OnDrawGizmos()
@@ -167,6 +170,12 @@ namespace Rito.MillionDust
                 worldSize
             );
         }
+        private void ChangeCone(Cone next)
+        {
+            currentCone.HideCone();
+            currentCone = next;
+            currentCone.ShowCone();
+        }
         #endregion
         /***********************************************************************
         *                               Init Methods
@@ -174,28 +183,27 @@ namespace Rito.MillionDust
         #region .
         private void Init()
         {
-            aliveNumber = instanceNumber;
+            aliveNumber = dustCount;
 
             kernelPopulateID = dustCompute.FindKernel("Populate");
-            kernelUpdateID = dustCompute.FindKernel("Update");
+            kernelUpdateID   = dustCompute.FindKernel("Update");
             kernelVacuumUpID = dustCompute.FindKernel("VacuumUp");
-            kernelEmitID = dustCompute.FindKernel("Emit");
+            kernelEmitID     = dustCompute.FindKernel("Emit");
+            kernelBlowID     = dustCompute.FindKernel("BlowWind");
 
             dustCompute.GetKernelThreadGroupSizes(kernelUpdateID, out uint tx, out _, out _);
-            kernelGroupSizeX = Mathf.CeilToInt((float)instanceNumber / tx);
+            kernelGroupSizeX = Mathf.CeilToInt((float)dustCount / tx);
 
-            dustCompute.SetInt("dustCount", instanceNumber);
+            dustCompute.SetInt("dustCount", dustCount);
 
             CalculateWorldBounds();
         }
 
-        private void InitConeMode()
+        private void InitCones()
         {
             cleaner.HideCone();
             emitter.HideCone();
-
-            cleaner.Next = emitter;
-            emitter.Next = cleaner;
+            blower.HideCone();
 
             currentCone = cleaner;
             currentCone.ShowCone();
@@ -210,7 +218,7 @@ namespace Rito.MillionDust
             uint[] argsData = new uint[] 
             {
                 (uint)dustMesh.GetIndexCount(subMeshIndex),
-                (uint)instanceNumber,
+                (uint)dustCount,
                 (uint)dustMesh.GetIndexStart(subMeshIndex),
                 (uint)dustMesh.GetBaseVertex(subMeshIndex),
                 0 
@@ -219,14 +227,14 @@ namespace Rito.MillionDust
             argsBuffer.SetData(argsData);
 
             // Dust Buffer
-            dustBuffer = new ComputeBuffer(instanceNumber, sizeof(float) * 3 + sizeof(int));
+            dustBuffer = new ComputeBuffer(dustCount, sizeof(float) * 3 + sizeof(int));
 
             // Dust Velocity Buffer
-            dustVelocityBuffer = new ComputeBuffer(instanceNumber, sizeof(float) * 3);
+            dustVelocityBuffer = new ComputeBuffer(dustCount, sizeof(float) * 3);
 
             // Alive Number Buffer
             aliveNumberBuffer = new ComputeBuffer(1, sizeof(uint));
-            aliveNumberArray = new uint[] { (uint)instanceNumber };
+            aliveNumberArray = new uint[] { (uint)dustCount };
             aliveNumberBuffer.SetData(aliveNumberArray);
         }
 
@@ -247,6 +255,9 @@ namespace Rito.MillionDust
             dustCompute.SetBuffer(kernelEmitID, "dustBuffer", dustBuffer);
             dustCompute.SetBuffer(kernelEmitID, "velocityBuffer", dustVelocityBuffer);
             dustCompute.SetBuffer(kernelEmitID, "aliveNumberBuffer", aliveNumberBuffer);
+
+            dustCompute.SetBuffer(kernelBlowID, "dustBuffer", dustBuffer);
+            dustCompute.SetBuffer(kernelBlowID, "velocityBuffer", dustVelocityBuffer);
         }
 
         /// <summary> 먼지들을 영역 내의 무작위 위치에 생성한다. </summary>
@@ -259,7 +270,7 @@ namespace Rito.MillionDust
             dustCompute.SetVector("spawnBoundsMax", spawnBounds.max);
 
             dustCompute.GetKernelThreadGroupSizes(kernelPopulateID, out uint tx, out _, out _);
-            int groupSizeX = Mathf.CeilToInt((float)instanceNumber / tx);
+            int groupSizeX = Mathf.CeilToInt((float)dustCount / tx);
 
             dustCompute.Dispatch(kernelPopulateID, groupSizeX, 1, 1);
         }
@@ -282,12 +293,9 @@ namespace Rito.MillionDust
         private void HandlePlayerInputs()
         {
             // 모드 변경
-            if (Input.GetKeyDown(changeModeKey))
-            {
-                currentCone.HideCone();
-                currentCone = currentCone.Next;
-                currentCone.ShowCone();
-            }
+            if (Input.GetKeyDown(KeyCode.Alpha1)) ChangeCone(cleaner);
+            else if (Input.GetKeyDown(KeyCode.Alpha2)) ChangeCone(emitter);
+            else if (Input.GetKeyDown(KeyCode.Alpha3)) ChangeCone(blower);
 
             // 마우스 보이기 & 숨기기
             if (Input.GetKeyDown(showCursorKey))
@@ -297,6 +305,7 @@ namespace Rito.MillionDust
             bool run = controller.MouseLocked && Input.GetKey(runKey);
             cleaner.IsRunning = run && currentCone == cleaner;
             emitter.IsRunning = run && currentCone == emitter;
+            blower.IsRunning  = run && currentCone == blower;
         }
 
         /// <summary> 컴퓨트 쉐이더 공통 변수들 업데이트 </summary>
@@ -345,6 +354,18 @@ namespace Rito.MillionDust
             dustCompute.SetFloat("emitterAngleRad", emitter.AngleRad);
 
             dustCompute.Dispatch(kernelEmitID, kernelGroupSizeX, 1, 1);
+        }
+
+        /// <summary> 송풍기 커널 실행 </summary>
+        private void UpdateBlower()
+        {
+            if (!blower.IsRunning) return;
+
+            dustCompute.SetFloat("blowerSqrForce", blower.SqrForce);
+            dustCompute.SetFloat("blowerSqrDist", blower.SqrDistance);
+            dustCompute.SetFloat("blowerDotThreshold", Mathf.Cos(blower.AngleRad));
+
+            dustCompute.Dispatch(kernelBlowID, kernelGroupSizeX, 1, 1);
         }
 
         /// <summary> 물리 업데이트 </summary>

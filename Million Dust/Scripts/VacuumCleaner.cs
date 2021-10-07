@@ -8,7 +8,7 @@ using System;
 
 namespace Rito.MillionDust
 {
-    public class VacuumCleaner : ConeBase
+    public class VacuumCleaner : Cone
     {
         [Range(0.01f, 5f), Tooltip("먼지가 사망하는 영역 반지름")]
         [SerializeField] private float deathRange = 0.2f;

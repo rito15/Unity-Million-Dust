@@ -8,7 +8,8 @@ using System;
 
 namespace Rito.MillionDust
 {
-    public abstract class ConeBase : MonoBehaviour
+    [DisallowMultipleComponent]
+    public class Cone : MonoBehaviour
     {
         [SerializeField] protected Material coneMaterial;
 
@@ -34,10 +35,6 @@ namespace Rito.MillionDust
         public float SqrForce => force * force;
         public float Force => force;
         public float AngleRad => angle * Mathf.Deg2Rad;
-
-
-        /// <summary> 다음 상태 </summary>
-        public ConeBase Next { get; set; }
 
 
         protected virtual void Awake()

@@ -76,7 +76,8 @@ namespace Rito.MillionDust
             // 상하 회전
             Vector3 eRot = transform.localEulerAngles;
             float nextX = eRot.x - h;
-            if (0f < nextX && nextX < 90f)
+            if (nextX > 180f) nextX -= 360f;
+            if (-90f < nextX && nextX < 90f)
             {
                 eRot.x = nextX;
             }

@@ -121,6 +121,54 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &244192318
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 244192319}
+  - component: {fileID: 244192320}
+  m_Layer: 0
+  m_Name: Wind Blower
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &244192319
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244192318}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 999038417}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &244192320
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244192318}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f47513ac57555b34dad2567e39593175, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  coneMaterial: {fileID: 2100000, guid: 49a1c47b697e4ac4e9e81697a3e42568, type: 2}
+  isRunning: 0
+  force: 150
+  distance: 25
+  angle: 45
 --- !u!1 &345767763
 GameObject:
   m_ObjectHideFlags: 0
@@ -152,7 +200,7 @@ Transform:
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_Children: []
   m_Father: {fileID: 999038417}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!135 &345767765
 SphereCollider:
@@ -552,6 +600,7 @@ Transform:
   m_Children:
   - {fileID: 697987788}
   - {fileID: 1656877670}
+  - {fileID: 244192319}
   - {fileID: 1662239501}
   - {fileID: 345767764}
   m_Father: {fileID: 2037478757}
@@ -735,7 +784,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1656877669}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e644367b112d2f54486e9f468a25208f, type: 3}
+  m_Script: {fileID: 11500000, guid: f47513ac57555b34dad2567e39593175, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   coneMaterial: {fileID: 2100000, guid: 012fb628776ba904392ebf8ebf896c5d, type: 2}
@@ -773,7 +822,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 999038417}
-  m_RootOrder: 2
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!81 &1662239502
 AudioListener:
@@ -857,9 +906,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dustMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
   dustMaterial: {fileID: 2100000, guid: 580e99519544d7049bc9d6a36bb4e96b, type: 2}
-  instanceNumber: 300000
+  dustCount: 300000
   dustScale: 0.4
-  spawnBottomCenter: {x: 0, y: 0, z: 0}
+  spawnBottomCenter: {x: 0, y: 25, z: 0}
   spawnSize: {x: 100, y: 10, z: 100}
   worldBottomCenter: {x: 0, y: 0, z: 0}
   worldSize: {x: 100, y: 25, z: 100}
@@ -867,6 +916,7 @@ MonoBehaviour:
   controller: {fileID: 999038418}
   cleaner: {fileID: 697987789}
   emitter: {fileID: 1656877671}
+  blower: {fileID: 244192320}
   gravityX: 0
   gravityY: -9.8
   gravityZ: 0
