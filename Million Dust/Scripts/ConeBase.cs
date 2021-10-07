@@ -36,6 +36,10 @@ namespace Rito.MillionDust
         public float AngleRad => angle * Mathf.Deg2Rad;
 
 
+        /// <summary> 다음 상태 </summary>
+        public ConeBase Next { get; set; }
+
+
         protected virtual void Awake()
         {
             CreateCone(coneMaterial);

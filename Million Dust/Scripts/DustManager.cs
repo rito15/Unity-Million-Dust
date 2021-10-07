@@ -194,6 +194,9 @@ namespace Rito.MillionDust
             cleaner.HideCone();
             emitter.HideCone();
 
+            cleaner.Next = emitter;
+            emitter.Next = cleaner;
+
             currentCone = cleaner;
             currentCone.ShowCone();
         }
@@ -282,13 +285,7 @@ namespace Rito.MillionDust
             if (Input.GetKeyDown(changeModeKey))
             {
                 currentCone.HideCone();
-
-                if (currentCone == cleaner)
-                    currentCone = emitter;
-
-                else if (currentCone == emitter)
-                    currentCone = cleaner;
-
+                currentCone = currentCone.Next;
                 currentCone.ShowCone();
             }
 
