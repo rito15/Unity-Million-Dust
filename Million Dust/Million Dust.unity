@@ -150,7 +150,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 999038417}
-  m_RootOrder: 2
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &244192320
 MonoBehaviour:
@@ -599,8 +599,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 697987788}
-  - {fileID: 1656877670}
   - {fileID: 244192319}
+  - {fileID: 1656877670}
   - {fileID: 1662239501}
   - {fileID: 345767764}
   m_Father: {fileID: 2037478757}
@@ -773,7 +773,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 999038417}
-  m_RootOrder: 1
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1656877671
 MonoBehaviour:
@@ -784,7 +784,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1656877669}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f47513ac57555b34dad2567e39593175, type: 3}
+  m_Script: {fileID: 11500000, guid: e644367b112d2f54486e9f468a25208f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   coneMaterial: {fileID: 2100000, guid: 012fb628776ba904392ebf8ebf896c5d, type: 2}
@@ -792,6 +792,7 @@ MonoBehaviour:
   force: 150
   distance: 50
   angle: 15
+  emissionPerSec: 1000
 --- !u!1 &1662239500
 GameObject:
   m_ObjectHideFlags: 0
@@ -915,8 +916,8 @@ MonoBehaviour:
   worldMaterial: {fileID: 2100000, guid: a7c357410e3263149ad9025f4ffac9a1, type: 2}
   controller: {fileID: 999038418}
   cleaner: {fileID: 697987789}
-  emitter: {fileID: 1656877671}
   blower: {fileID: 244192320}
+  emitter: {fileID: 1656877671}
   gravityX: 0
   gravityY: -9.8
   gravityZ: 0

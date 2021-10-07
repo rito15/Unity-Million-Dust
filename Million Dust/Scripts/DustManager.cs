@@ -45,8 +45,8 @@ namespace Rito.MillionDust
         [Header("Player")]
         [SF] private PlayerController controller;
         [SF] private VacuumCleaner cleaner;
-        [SF] private Cone emitter;
         [SF] private Cone blower;
+        [SF] private DustEmitter emitter;
 
         [Header("Physics")]
         [Range(-20f, 20f)]
@@ -83,7 +83,11 @@ namespace Rito.MillionDust
         private Bounds worldBounds;
 
         // Inputs & Mode
-        private KeyCode runKey = KeyCode.Mouse0;
+        private KeyCode cleanerKey = KeyCode.Alpha1;
+        private KeyCode blowerKey  = KeyCode.Alpha2;
+        private KeyCode emitterKey = KeyCode.Alpha3;
+
+        private KeyCode operationKey  = KeyCode.Mouse0;
         private KeyCode showCursorKey = KeyCode.Mouse1;
         private Cone currentCone;
 
@@ -186,10 +190,10 @@ namespace Rito.MillionDust
             aliveNumber = dustCount;
 
             kernelPopulateID = dustCompute.FindKernel("Populate");
-            kernelUpdateID   = dustCompute.FindKernel("Update");
+            kernelUpdateID = dustCompute.FindKernel("Update");
             kernelVacuumUpID = dustCompute.FindKernel("VacuumUp");
-            kernelEmitID     = dustCompute.FindKernel("Emit");
-            kernelBlowID     = dustCompute.FindKernel("BlowWind");
+            kernelEmitID = dustCompute.FindKernel("Emit");
+            kernelBlowID = dustCompute.FindKernel("BlowWind");
 
             dustCompute.GetKernelThreadGroupSizes(kernelUpdateID, out uint tx, out _, out _);
             kernelGroupSizeX = Mathf.CeilToInt((float)dustCount / tx);
@@ -215,13 +219,13 @@ namespace Rito.MillionDust
             int subMeshIndex = 0;
 
             // Args Buffer
-            uint[] argsData = new uint[] 
+            uint[] argsData = new uint[]
             {
                 (uint)dustMesh.GetIndexCount(subMeshIndex),
                 (uint)dustCount,
                 (uint)dustMesh.GetIndexStart(subMeshIndex),
                 (uint)dustMesh.GetBaseVertex(subMeshIndex),
-                0 
+                0
             };
             argsBuffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
             argsBuffer.SetData(argsData);
@@ -293,19 +297,19 @@ namespace Rito.MillionDust
         private void HandlePlayerInputs()
         {
             // 모드 변경
-            if (Input.GetKeyDown(KeyCode.Alpha1)) ChangeCone(cleaner);
-            else if (Input.GetKeyDown(KeyCode.Alpha2)) ChangeCone(emitter);
-            else if (Input.GetKeyDown(KeyCode.Alpha3)) ChangeCone(blower);
+            if (Input.GetKeyDown(cleanerKey)) ChangeCone(cleaner);
+            else if (Input.GetKeyDown(blowerKey)) ChangeCone(blower);
+            else if (Input.GetKeyDown(emitterKey)) ChangeCone(emitter);
 
             // 마우스 보이기 & 숨기기
             if (Input.GetKeyDown(showCursorKey))
                 controller.ShowCursorToggle();
 
             // 동작 수행
-            bool run = controller.MouseLocked && Input.GetKey(runKey);
+            bool run = controller.MouseLocked && Input.GetKey(operationKey);
             cleaner.IsRunning = run && currentCone == cleaner;
-            emitter.IsRunning = run && currentCone == emitter;
             blower.IsRunning  = run && currentCone == blower;
+            emitter.IsRunning = run && currentCone == emitter;
         }
 
         /// <summary> 컴퓨트 쉐이더 공통 변수들 업데이트 </summary>
@@ -345,13 +349,12 @@ namespace Rito.MillionDust
         {
             if (!emitter.IsRunning) return;
 
-            // * dustCount : 게임 시작 시 전달
-
             dustCompute.SetFloat("time", Time.time);
             dustCompute.SetMatrix("controllerMatrix", controller.LocalToWorld);
             dustCompute.SetFloat("emitterForce", emitter.Force);
             dustCompute.SetFloat("emitterDist", emitter.Distance);
             dustCompute.SetFloat("emitterAngleRad", emitter.AngleRad);
+            dustCompute.SetInt("emissionPerSec", emitter.EmissionPerSec);
 
             dustCompute.Dispatch(kernelEmitID, kernelGroupSizeX, 1, 1);
         }

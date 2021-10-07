@@ -34,6 +34,9 @@ RWStructuredBuffer<Dust> dustBuffer;        // 먼지 위치, 생존 여부
 RWStructuredBuffer<float3> velocityBuffer;  // 먼지 속도
 RWStructuredBuffer<uint> aliveNumberBuffer; // 생존한 먼지 개수
 
+/* Init On Load */
+uint dustCount;        // 먼지 개수
+
 /* Common */
 float3 spawnBoundsMin; // 먼지 생성 영역 - 최소 지점
 float3 spawnBoundsMax; // 먼지 생성 영역 - 최대 지점
@@ -59,11 +62,11 @@ float cleanerSqrForce;      // 빨아들이는 힘 - 제곱
 float cleanerDotThreshold;  // 진공 청소기 원뿔 영역 내적 범위
 
 /* Emitter */
-uint dustCount;        // 먼지 개수
 float time;            // Time.time
 float emitterForce;    // 방출 강도
 float emitterDist;     // 방출 거리
 float emitterAngleRad; // 방출 각도
+uint emissionPerSec;   // 초당 먼지 발사 개수
 float4x4 controllerMatrix; //  localToWorld
 
 /* Blower */
@@ -226,10 +229,17 @@ void Emit (uint3 id : SV_DispatchThreadID)
     if(dustBuffer[i].isAlive == TRUE) return;
     if(i >= dustCount) return;
 
-    // 발사 확률 계산
+    /* 발사 확률 계산*/
+    // emissionPerSec = 프레임당 발사되는 개수 / deltaTime
+    // 발사 확률 = 프레임당 발사되는 개수 / 현재 개수
+
+    float aliveCount = dustCount - aliveNumberBuffer[0]; // 죽은(발사 가능한) 먼지 개수
+    float emissionCount = emissionPerSec * deltaTime;    // 발사할 먼지 개수
+    float emissionRatio = emissionCount / aliveCount;    // 발사 확률
+
     float seed = (i + time) / 79238.288;
     float r = Random11(seed);
-    if(r > 0.01) return;
+    if(r > emissionRatio) return;
 
     // Note : localDir의 z를 1로 고정하고, xy를 tan(emitterAngleRad)로 지정함으로써
     // 발사되는 먼지들이 형성하는 원뿔의 각도를 suctionAngle로 설정하는 효과를 얻는다.
@@ -247,7 +257,7 @@ void Emit (uint3 id : SV_DispatchThreadID)
     float3 A = F / mass;
     float3 V = A * deltaTime;
 
-    dustBuffer[i].position = controllerPos;        // 청소기 입구로 위치 이동
+    dustBuffer[i].position = controllerPos;
     velocityBuffer[i] = V;
 
     // 먼지 되살리기
