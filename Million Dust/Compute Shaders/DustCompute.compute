@@ -151,12 +151,11 @@ void Update (uint3 id : SV_DispatchThreadID)
     ConfineWithinCubeBounds(currPos, nextPos, velocityBuffer[i], radius, elasticity, bounds);
 
     // [2] Sphere Collider
-    float3 spherePos = float3(0, 2.5, 0);
-    float sphereRadius = 5;
-    bool sphereCollided = CheckSphereToSphereCollision(nextPos, radius, spherePos, sphereRadius);
+    float4 sphere = float4(0, 2.5, 0, 5);
+    bool sphereCollided = CheckSphereIntersection(float4(nextPos, radius), sphere);
     if(sphereCollided)
     {
-        CalculateSphereCollision(currPos, nextPos, velocityBuffer[i], spherePos, radius, sphereRadius, elasticity);
+        CalculateSphereCollision(currPos, nextPos, velocityBuffer[i], sphere, radius, elasticity);
     }
     
     // 다음 위치 적용

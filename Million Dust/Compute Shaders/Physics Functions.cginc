@@ -1,8 +1,10 @@
 
-// 구체 충돌 여부 검사
-bool CheckSphereToSphereCollision(float3 posA, float radiusA, float3 posB, float radiusB)
+// 구체끼리의 충돌 여부 검사
+// xyz : Position
+// w : Radius
+bool CheckSphereIntersection(float4 sphereA, float4 sphereB)
 {
-    return SqrMagnitude(posA - posB) < Square(radiusA + radiusB);
+    return SqrMagnitude(sphereA.rgb - sphereB.rgb) < Square(sphereA.w + sphereB.w);
 }
 
 // A -> B 위치로 Sphere Cast
@@ -31,16 +33,17 @@ float3 SphereCastToSphere(float3 A, float3 B, float3 S, float r1, float r2)
 // - cur  : 현재 프레임에서의 위치
 // - next : 다음 프레임에서의 위치 [INOUT]
 // - velocity : 현재 이동 속도     [INOUT]
-// - radius : 먼지 반지름
+// - sphere : 구체 중심 위치(xyz), 구체 반지름(w)
+// - dustRadius : 먼지 반지름
 // - elasticity : 탄성력 계수(0 ~ 1) : 충돌 시 보존되는 운동량 비율
-void CalculateSphereCollision(float3 cur, inout float3 next, inout float3 velocity, float3 spherePosition,
-float dustRadius, float sphereRadius, float elasticity)
+void CalculateSphereCollision(float3 cur, inout float3 next, inout float3 velocity, float4 sphere,
+float dustRadius, float elasticity)
 {
     // 충돌 시 먼지 위치
-    float3 contactPos = SphereCastToSphere(cur, next, spherePosition, dustRadius, sphereRadius);
+    float3 contactPos = SphereCastToSphere(cur, next, sphere.xyz, dustRadius, sphere.w);
 
     // 충돌 지점의 노멀 벡터
-    float3 contactNormal = (contactPos - spherePosition) / (dustRadius + sphereRadius);
+    float3 contactNormal = (contactPos - sphere.xyz) / (dustRadius + sphere.w);
 
     // 충돌 지점에서 원래 다음 위치를 향한 벡터 : 잉여 벡터
     float3 extraVec = next - contactPos;
