@@ -5,6 +5,56 @@ bool CheckSphereToSphereCollision(float3 posA, float radiusA, float3 posB, float
     return SqrMagnitude(posA - posB) < Square(radiusA + radiusB);
 }
 
+// A -> B 위치로 Sphere Cast
+// S : Target Sphere Position
+// r1 : Radius of Casted Sphere
+// r2 : Radius of Target Sphere
+float3 SphereCastToSphere(float3 A, float3 B, float3 S, float r1, float r2)
+{
+    float3 nAB = normalize(B - A);
+    float3 AS  = (S - A);
+    float as2 = SqrMagnitude(AS);
+    float ad  = dot(AS, nAB);
+    float ad2 = ad * ad;
+    float ds2 = as2 - ad2;
+    float cs  = r1 + r2;
+    float cs2 = cs * cs;
+    float cd  = sqrt(cs2 - ds2);
+    float ac  = ad - cd;
+
+    float3 C = A + nAB * ac;            // 충돌 시 구체 중심 좌표
+    //float3 E = C + (S - C) * r1 / cs; // 충돌 지점 좌표
+    return C;
+}
+
+// Sphere Collider에 충돌 검사하여 먼지 위치 및 속도 변경
+// - cur  : 현재 프레임에서의 위치
+// - next : 다음 프레임에서의 위치 [INOUT]
+// - velocity : 현재 이동 속도     [INOUT]
+// - radius : 먼지 반지름
+// - elasticity : 탄성력 계수(0 ~ 1) : 충돌 시 보존되는 운동량 비율
+void CalculateSphereCollision(float3 cur, inout float3 next, inout float3 velocity, float3 spherePosition,
+float dustRadius, float sphereRadius, float elasticity)
+{
+    // 충돌 시 먼지 위치
+    float3 contactPos = SphereCastToSphere(cur, next, spherePosition, dustRadius, sphereRadius);
+
+    // 충돌 지점의 노멀 벡터
+    float3 contactNormal = (contactPos - spherePosition) / (dustRadius + sphereRadius);
+
+    // 충돌 지점에서 원래 다음 위치를 향한 벡터 : 잉여 벡터
+    float3 extraVec = next - contactPos;
+
+    // 반사 벡터
+    float3 outVec = reflect(extraVec, contactNormal) * elasticity;
+
+    // 다음 프레임 위치 변경
+    next = contactPos + outVec;
+
+    // 속도 변경
+    velocity = reflect(velocity, contactNormal) * elasticity;
+}
+
 // 점 A에서 점 B로 레이캐스트하여 평면과 접점 찾기
 float3 RaycastToPlane(float3 A, float3 B, Plane plane)
 {
@@ -28,10 +78,10 @@ float3 RaycastToPlane(float3 A, float3 B, Plane plane)
 #define OUT_OF_PZ 5 // +z
 #define OUT_OF_MZ 6 // -z
 
-// 육면체 범위 내로 위치 제한 및 충돌 검사
-// - cur : 현재 프레임에서의 위치
-// - next : 다음 프레임에서의 위치
-// - velocity : 현재 이동 속도
+// 육면체 범위 내로 위치 제한 및 충돌 검사 => 먼지 위치 및 속도 변경
+// - cur  : 현재 프레임에서의 위치
+// - next : 다음 프레임에서의 위치 [INOUT]
+// - velocity : 현재 이동 속도     [INOUT]
 // - threshold : 입자의 크기
 // - elasticity : 탄성력 계수(0 ~ 1)
 // - bounds : 큐브 영역

@@ -150,20 +150,14 @@ void Update (uint3 id : SV_DispatchThreadID)
     bounds.max = worldBoundsMax;
     ConfineWithinCubeBounds(currPos, nextPos, velocityBuffer[i], radius, elasticity, bounds);
 
-    // [2] Sphere to Sphere
-    //float3 spherePos = float3(0, 2.5, 0);
-    //float3 sphereRadius = 5;
-    //bool sphereCollided = CheckSphereToSphereCollision(nextPos, radius, spherePos, sphereRadius);
-    //if(sphereCollided)
-    //{
-    //    float3 inDir = normalize(velocityBuffer[i]);
-    //    float3 contactNormal = normalize(nextPos - spherePos);
-    //    float3 adjNextPos = spherePos + contactNormal * (sphereRadius + radius);
-    //    float3 outDir = reflect(inDir, contactNormal);
-    //
-    //    nextPos = adjNextPos;
-    //    velocityBuffer[i] = outDir * length(velocityBuffer[i]) * 0.8;
-    //}
+    // [2] Sphere Collider
+    float3 spherePos = float3(0, 2.5, 0);
+    float sphereRadius = 5;
+    bool sphereCollided = CheckSphereToSphereCollision(nextPos, radius, spherePos, sphereRadius);
+    if(sphereCollided)
+    {
+        CalculateSphereCollision(currPos, nextPos, velocityBuffer[i], spherePos, radius, sphereRadius, elasticity);
+    }
     
     // 다음 위치 적용
     dustBuffer[i].position = nextPos;
