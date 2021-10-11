@@ -30,10 +30,14 @@
 /*******************************************************************
 /*                            Variables
 /*******************************************************************/
+/* Buffers */
 RWStructuredBuffer<Dust> dustBuffer;        // 먼지 위치, 생존 여부
 RWStructuredBuffer<half3> dustColorBuffer;  // 먼지 색상 RGB
 RWStructuredBuffer<float3> velocityBuffer;  // 먼지 속도
 RWStructuredBuffer<uint> aliveNumberBuffer; // 생존한 먼지 개수
+
+RWStructuredBuffer<float4> sphereColliderBuffer;
+uint sphereColliderCount;
 
 /* Init On Load */
 uint dustCount;        // 먼지 개수
@@ -151,11 +155,14 @@ void Update (uint3 id : SV_DispatchThreadID)
     ConfineWithinCubeBounds(currPos, nextPos, velocityBuffer[i], radius, elasticity, bounds);
 
     // [2] Sphere Collider
-    float4 sphere = float4(0, 2.5, 0, 5);
-    bool sphereCollided = CheckSphereIntersection(float4(nextPos, radius), sphere);
-    if(sphereCollided)
+    for(uint scIndex = 0; scIndex < sphereColliderCount; scIndex++)
     {
-        CalculateSphereCollision(currPos, nextPos, velocityBuffer[i], sphere, radius, elasticity);
+        float4 sphere = sphereColliderBuffer[scIndex];
+        bool sphereCollided = CheckSphereIntersection(float4(nextPos, radius), sphere);
+        if(sphereCollided)
+        {
+            CalculateSphereCollision(currPos, nextPos, velocityBuffer[i], sphere, radius, elasticity);
+        }
     }
     
     // 다음 위치 적용

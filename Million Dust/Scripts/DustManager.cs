@@ -82,7 +82,6 @@ namespace Rito.MillionDust
         private ComputeBuffer aliveNumberBuffer;  // 생존 먼지 개수 버퍼
         private ComputeBuffer dustColorBuffer;    // 먼지 색상 버퍼
 
-
         // Private Variables
         private uint[] aliveNumberArray;
         private int aliveNumber;
@@ -106,6 +105,126 @@ namespace Rito.MillionDust
         private int kernelBlowID;
         private int kernelGroupSizeX;
 
+        private Queue<Action> afterInitJobQueue = new Queue<Action>();
+
+        /***********************************************************************
+        *                               Colliders
+        ***********************************************************************/
+        #region .
+
+        // TODO : 공통 클래스 DustCollider, ColliderSet<DustCollider>로 묶어서 일반화
+
+        private class SphereColliderSet
+        {
+            private ComputeBuffer colliderBuffer;
+            private List<DustSphereCollider> colliders;
+            private Vector4[] dataArray;
+
+            private int dataCount;
+            private ComputeShader computeShader;
+            private int shaderKernel;
+            private string bufferName;
+            private string countVariableName;
+
+            public SphereColliderSet(ComputeShader computeShader, int shaderKernel, string bufferName, string countVariableName)
+            {
+                this.colliders = new List<DustSphereCollider>(4);
+                this.dataArray = new Vector4[4];
+                this.computeShader = computeShader;
+                this.shaderKernel = shaderKernel;
+                this.bufferName = bufferName;
+                this.countVariableName = countVariableName;
+                this.dataCount = 0;
+
+                colliderBuffer = new ComputeBuffer(1, 4);
+                computeShader.SetBuffer(shaderKernel, bufferName, colliderBuffer);
+                computeShader.SetInt(countVariableName, 0);
+            }
+
+            ~SphereColliderSet()
+            {
+                ReleaseBuffer();
+            }
+
+            private void ReleaseBuffer()
+            {
+                if (colliderBuffer != null)
+                    colliderBuffer.Release();
+            }
+
+            private void ExpandDataArray()
+            {
+                Vector4[] newArray = new Vector4[this.dataArray.Length * 2];
+                Array.Copy(this.dataArray, newArray, dataCount);
+                this.dataArray = newArray;
+            }
+
+            /// <summary> Collider 리스트로부터 Vector4 배열에 데이터 전달 </summary>
+            private void UpdateDataArray()
+            {
+                if (dataArray.Length < dataCount)
+                    ExpandDataArray();
+
+                for (int i = 0; i < dataCount; i++)
+                {
+                    dataArray[i] = colliders[i].SphereData;
+                }
+            }
+
+            /// <summary> 컴퓨트 버퍼의 데이터를 새롭게 갱신하고 컴퓨트 쉐이더에 전달 </summary>
+            public void UpdateBuffer()
+            {
+                ReleaseBuffer();
+                if (dataCount == 0) return;
+
+                UpdateDataArray();
+                colliderBuffer = new ComputeBuffer(dataCount, sizeof(float) * 4);
+                colliderBuffer.SetData(dataArray, 0, 0, dataCount);
+                computeShader.SetBuffer(shaderKernel, bufferName, colliderBuffer);
+                computeShader.SetInt(countVariableName, dataCount);
+            }
+
+            public void AddCollider(DustSphereCollider collider)
+            {
+                if (colliders.Contains(collider)) return;
+
+                dataCount++;
+                colliders.Add(collider);
+                UpdateBuffer();
+            }
+
+            public void RemoveCollider(DustSphereCollider collider)
+            {
+                if (!colliders.Contains(collider)) return;
+
+                dataCount--;
+                colliders.Remove(collider);
+                UpdateBuffer();
+            }
+        }
+
+        private SphereColliderSet sphereColliderSet;
+
+        public void AddSphereCollider(DustSphereCollider collider)
+        {
+            if (sphereColliderSet == null)
+            {
+                afterInitJobQueue.Enqueue(() => sphereColliderSet.AddCollider(collider));
+            }
+            else
+            {
+                sphereColliderSet.AddCollider(collider);
+            }
+        }
+
+        public void RemoveSphereCollider(DustSphereCollider collider)
+        {
+            if (sphereColliderSet == null) return;
+
+            sphereColliderSet.RemoveCollider(collider);
+        }
+
+        #endregion
         /***********************************************************************
         *                               Unity Events
         ***********************************************************************/
@@ -118,6 +237,17 @@ namespace Rito.MillionDust
             SetBuffersToShaders();
             PopulateDusts();
             CreateWorldBoundsMesh();
+            InitColliders();
+
+            ProcessInitialJobs();
+        }
+
+        /// <summary> 초기화 이전에 쌓인 작업들 처리 </summary>
+        private void ProcessInitialJobs()
+        {
+            while (afterInitJobQueue.Count > 0)
+                afterInitJobQueue.Dequeue()?.Invoke();
+            afterInitJobQueue = null;
         }
 
         private void Update()
@@ -303,6 +433,12 @@ namespace Rito.MillionDust
             mf.sharedMesh = MeshMaker.CreateWorldBoundsMesh(worldBounds);
             mr.sharedMaterial = worldMaterial;
         }
+
+        private void InitColliders()
+        {
+            sphereColliderSet = new SphereColliderSet(this.dustCompute, kernelUpdateID, "sphereColliderBuffer", "sphereColliderCount");
+        }
+
         #endregion
         /***********************************************************************
         *                               Update Methods
