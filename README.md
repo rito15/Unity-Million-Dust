@@ -45,6 +45,10 @@
 
 <img src="https://user-images.githubusercontent.com/42164422/136384259-8ef62ab4-6359-4c30-b954-bec307bf7ceb.gif" width=600/>
 
+
+- 구형 충돌체(Sphere Collider)와의 충돌
+<img src="https://user-images.githubusercontent.com/42164422/136794043-76ef637f-4dea-4e50-8a5e-807d4bcc69eb.gif" width=600/>
+
 <!--
 <img src="" width=600/>
 -->
