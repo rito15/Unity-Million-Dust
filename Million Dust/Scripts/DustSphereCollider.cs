@@ -30,7 +30,7 @@ namespace Rito.MillionDust
         private void OnEnable()
         {
             if (dustManager == null)
-                InitDustManager();
+                dustManager = FindObjectOfType<DustManager>();
 
             ValidateData();
             dustManager.AddSphereCollider(this);
@@ -39,11 +39,6 @@ namespace Rito.MillionDust
         private void OnDisable()
         {
             dustManager.RemoveSphereCollider(this);
-        }
-
-        private void InitDustManager()
-        {
-            dustManager = FindObjectOfType<DustManager>();
         }
 
         private void ValidateData()

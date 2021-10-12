@@ -36,6 +36,7 @@ RWStructuredBuffer<half3> dustColorBuffer;  // 먼지 색상 RGB
 RWStructuredBuffer<float3> velocityBuffer;  // 먼지 속도
 RWStructuredBuffer<uint> aliveNumberBuffer; // 생존한 먼지 개수
 
+/* Colliders */
 RWStructuredBuffer<float4> sphereColliderBuffer;
 uint sphereColliderCount;
 
@@ -155,7 +156,7 @@ void Update (uint3 id : SV_DispatchThreadID)
     bounds.max = worldBoundsMax;
     ConfineWithinCubeBounds(currPos, nextPos, velocityBuffer[i], radius, elasticity, bounds);
 
-    // [2] Sphere Collider
+    // [2] Sphere Colliders
     for(uint scIndex = 0; scIndex < sphereColliderCount; scIndex++)
     {
         float4 sphere = sphereColliderBuffer[scIndex];

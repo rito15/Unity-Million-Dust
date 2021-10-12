@@ -103,6 +103,7 @@ namespace Rito.MillionDust
         private int kernelBlowID;
         private int kernelGroupSizeX;
 
+        // 게임 시작 시 초기화 작업 완료 후 처리
         private Queue<Action> afterInitJobQueue = new Queue<Action>();
 
         /***********************************************************************
@@ -235,10 +236,13 @@ namespace Rito.MillionDust
         {
             Init();
             InitCones();
+            CreateWorldBoundsMesh();
+
+            InitKernels();
+            InitComputeShader();
             InitBuffers();
             SetBuffersToShaders();
             PopulateDusts();
-            CreateWorldBoundsMesh();
             InitColliders();
 
             ProcessInitialJobs();
@@ -303,7 +307,7 @@ namespace Rito.MillionDust
         }
         #endregion
         /***********************************************************************
-        *                               Tiny Methods
+        *                               Private Methods
         ***********************************************************************/
         #region .
         private void CalculateWorldBounds()
@@ -320,6 +324,14 @@ namespace Rito.MillionDust
             currentCone = next;
             currentCone.ShowCone();
         }
+
+        /// <summary> 바뀐 설정 적용하여 전체 다시 로드 </summary>
+        private void Reload()
+        {
+            Init();
+            SetBuffersToShaders();
+
+        }
         #endregion
         /***********************************************************************
         *                               Init Methods
@@ -328,17 +340,6 @@ namespace Rito.MillionDust
         private void Init()
         {
             aliveNumber = dustCount;
-
-            kernelPopulateID = dustCompute.FindKernel("Populate");
-            kernelUpdateID = dustCompute.FindKernel("Update");
-            kernelVacuumUpID = dustCompute.FindKernel("VacuumUp");
-            kernelEmitID = dustCompute.FindKernel("Emit");
-            kernelBlowID = dustCompute.FindKernel("BlowWind");
-
-            dustCompute.GetKernelThreadGroupSizes(kernelUpdateID, out uint tx, out _, out _);
-            kernelGroupSizeX = Mathf.CeilToInt((float)dustCount / tx);
-
-            dustCompute.SetInt("dustCount", dustCount);
 
             CalculateWorldBounds();
         }
@@ -353,9 +354,42 @@ namespace Rito.MillionDust
             currentCone.ShowCone();
         }
 
+        /// <summary> 월드 영역 큐브 메시 생성 </summary>
+        private void CreateWorldBoundsMesh()
+        {
+            GameObject go = new GameObject("World");
+            var mf = go.AddComponent<MeshFilter>();
+            var mr = go.AddComponent<MeshRenderer>();
+            mf.sharedMesh = MeshMaker.CreateWorldBoundsMesh(worldBounds);
+            mr.sharedMaterial = worldMaterial;
+        }
+
+        private void InitKernels()
+        {
+            kernelPopulateID = dustCompute.FindKernel("Populate");
+            kernelUpdateID   = dustCompute.FindKernel("Update");
+            kernelVacuumUpID = dustCompute.FindKernel("VacuumUp");
+            kernelEmitID     = dustCompute.FindKernel("Emit");
+            kernelBlowID     = dustCompute.FindKernel("BlowWind");
+        }
+
+        private void InitComputeShader()
+        {
+            dustCompute.GetKernelThreadGroupSizes(kernelUpdateID, out uint tx, out _, out _);
+            kernelGroupSizeX = Mathf.CeilToInt((float)dustCount / tx);
+
+            dustCompute.SetInt("dustCount", dustCount);
+        }
+
         /// <summary> 컴퓨트 버퍼들 생성 </summary>
         private void InitBuffers()
         {
+            if (argsBuffer         != null) argsBuffer.Release();
+            if (dustBuffer         != null) dustBuffer.Release();
+            if (dustColorBuffer    != null) dustColorBuffer.Release();
+            if (dustVelocityBuffer != null) dustVelocityBuffer.Release();
+            if (aliveNumberBuffer  != null) aliveNumberBuffer.Release();
+
             int subMeshIndex = 0;
 
             // Args Buffer
@@ -367,9 +401,10 @@ namespace Rito.MillionDust
                 (uint)dustMesh.GetBaseVertex(subMeshIndex),
                 0
             };
+
             argsBuffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
             argsBuffer.SetData(argsData);
-
+            
             // Dust Buffer
             dustBuffer = new ComputeBuffer(dustCount, sizeof(float) * 3 + sizeof(int));
 
@@ -409,7 +444,7 @@ namespace Rito.MillionDust
             dustCompute.SetBuffer(kernelBlowID, "velocityBuffer", dustVelocityBuffer);
         }
 
-        /// <summary> 먼지들을 영역 내의 무작위 위치에 생성한다. </summary>
+        /// <summary> 먼지들을 영역 내의 무작위 위치에 생성 </summary>
         private void PopulateDusts()
         {
             Vector3 spawnCenter = spawnBottomCenter + Vector3.up * spawnSize.y * 0.5f;
@@ -424,16 +459,6 @@ namespace Rito.MillionDust
             int groupSizeX = Mathf.CeilToInt((float)dustCount / tx);
 
             dustCompute.Dispatch(kernelPopulateID, groupSizeX, 1, 1);
-        }
-
-        /// <summary> 월드 영역 큐브 메시 생성 </summary>
-        private void CreateWorldBoundsMesh()
-        {
-            GameObject go = new GameObject("World");
-            var mf = go.AddComponent<MeshFilter>();
-            var mr = go.AddComponent<MeshRenderer>();
-            mf.sharedMesh = MeshMaker.CreateWorldBoundsMesh(worldBounds);
-            mr.sharedMaterial = worldMaterial;
         }
 
         private void InitColliders()

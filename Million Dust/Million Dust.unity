@@ -521,6 +521,7 @@ MonoBehaviour:
   distance: 25
   angle: 45
   deathRange: 2
+  killMode: 1
 --- !u!1 &803335356
 GameObject:
   m_ObjectHideFlags: 0
@@ -1132,7 +1133,7 @@ MonoBehaviour:
   dustCount: 300000
   dustScale: 0.4
   dustColorA: {r: 0, g: 0, b: 0, a: 1}
-  dustColorB: {r: 0.6769233, g: 0, b: 1, a: 1}
+  dustColorB: {r: 0.58404064, g: 0, b: 1, a: 1}
   spawnBottomCenter: {x: 0, y: 5, z: 0}
   spawnSize: {x: 100, y: 10, z: 100}
   worldBottomCenter: {x: 0, y: 0, z: 0}
