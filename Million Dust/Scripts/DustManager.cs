@@ -241,7 +241,6 @@ namespace Rito.MillionDust
         {
             Init();
             InitCones();
-            CreateWorldBoundsMesh();
 
             InitKernels();
             InitComputeShader();
@@ -249,9 +248,13 @@ namespace Rito.MillionDust
             SetBuffersToShaders();
             PopulateDusts();
             SetDustColors();
+            InitWorldBounds();
             InitColliders();
 
             ProcessInitialJobs();
+
+            StartCoroutine(ResetWorldBoundsRoutine());
+            StartCoroutine(ResetDustColorsRoutine());
         }
 
         /// <summary> 초기화 이전에 쌓인 작업들 처리 </summary>
@@ -306,7 +309,7 @@ namespace Rito.MillionDust
         {
             if (Application.isPlaying) return;
 
-            CalculateWorldBounds();
+            CalculateWorldBounds(ref worldBounds);
 
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireCube(worldBounds.center, worldBounds.size);
@@ -316,7 +319,7 @@ namespace Rito.MillionDust
         *                               Private Methods
         ***********************************************************************/
         #region .
-        private void CalculateWorldBounds()
+        private void CalculateWorldBounds(ref Bounds worldBounds)
         {
             Vector3 boundsCenter = worldBottomCenter + Vector3.up * worldSize.y * 0.5f;
             worldBounds = new Bounds(
@@ -335,7 +338,7 @@ namespace Rito.MillionDust
         private void Reload()
         {
             Init();
-            CreateWorldBoundsMesh();
+            InitWorldBounds();
             SetBuffersToShaders();
             InitComputeShader();
             InitBuffers();
@@ -349,6 +352,49 @@ namespace Rito.MillionDust
         //    Color oldDustColorA = dustColorA;
         //    Color oldDustColorB = dustColorB;
         //}
+
+        /// <summary> 월드 영역 변경 발생 시, 재생성 및 변경사항 적용 </summary>
+        private IEnumerator ResetWorldBoundsRoutine()
+        {
+            Vector3 oldWorldPivot = this.worldBottomCenter;
+            Vector3 oldWorldSize  = this.worldSize;
+
+            WaitForSeconds wfs = new WaitForSeconds(0.5f);
+            while (true)
+            {
+                if (oldWorldPivot != this.worldBottomCenter ||
+                    oldWorldSize  != this.worldSize)
+                {
+                    InitWorldBounds();
+                }
+
+                oldWorldPivot = this.worldBottomCenter;
+                oldWorldSize  = this.worldSize;
+                yield return wfs;
+            }
+        }
+
+        /// <summary> 먼지 색상 변경 발생 시, 컴퓨트 쉐이더에 변경사항 적용 </summary>
+        private IEnumerator ResetDustColorsRoutine()
+        {
+            Color oldDustColorA = dustColorA;
+            Color oldDustColorB = dustColorB;
+
+            WaitForSeconds wfs = new WaitForSeconds(0.5f);
+            while (true)
+            {
+                if (oldDustColorA != this.dustColorA ||
+                    oldDustColorB != this.dustColorB)
+                {
+                    SetDustColors();
+                }
+
+                oldDustColorA = this.dustColorA;
+                oldDustColorB = this.dustColorB;
+                yield return wfs;
+            }
+        }
+
         #endregion
         /***********************************************************************
         *                               Init Methods
@@ -357,8 +403,6 @@ namespace Rito.MillionDust
         private void Init()
         {
             aliveNumber = dustCount;
-
-            CalculateWorldBounds();
         }
 
         private void InitCones()
@@ -369,17 +413,6 @@ namespace Rito.MillionDust
 
             currentCone = cleaner;
             currentCone.ShowCone();
-        }
-
-        /// <summary> 월드 영역 큐브 메시 생성 </summary>
-        private void CreateWorldBoundsMesh()
-        {
-            if(worldGO == null) worldGO = new GameObject("World");
-            if(worldMF == null) worldMF = worldGO.AddComponent<MeshFilter>();
-            if(worldMR == null) worldMR = worldGO.AddComponent<MeshRenderer>();
-
-            worldMF.sharedMesh = MeshMaker.CreateWorldBoundsMesh(worldBounds);
-            worldMR.sharedMaterial = worldMaterial;
         }
 
         private void InitKernels()
@@ -469,11 +502,10 @@ namespace Rito.MillionDust
         private void PopulateDusts()
         {
             Vector3 spawnCenter = spawnBottomCenter + Vector3.up * spawnSize.y * 0.5f;
-            Bounds spawnBounds = new Bounds(spawnCenter, spawnSize);
+            Bounds  spawnBounds = new Bounds(spawnCenter, spawnSize);
 
             dustCompute.SetVector("spawnBoundsMin", spawnBounds.min);
             dustCompute.SetVector("spawnBoundsMax", spawnBounds.max);
-
             dustCompute.Dispatch(kernelPopulate, kernelGroupSizeX, 1, 1);
         }
 
@@ -483,6 +515,22 @@ namespace Rito.MillionDust
             dustCompute.SetVector("dustColorA", dustColorA);
             dustCompute.SetVector("dustColorB", dustColorB);
             dustCompute.Dispatch(kernelSetDustColors, kernelGroupSizeX, 1, 1);
+        }
+
+        /// <summary> 월드 영역 큐브 메시 생성 및 컴퓨트 쉐이더에 값 전달 </summary>
+        private void InitWorldBounds()
+        {
+            if (worldGO == null) worldGO = new GameObject("World");
+            if (worldMF == null) worldMF = worldGO.AddComponent<MeshFilter>();
+            if (worldMR == null) worldMR = worldGO.AddComponent<MeshRenderer>();
+
+            CalculateWorldBounds(ref worldBounds);
+
+            worldMF.sharedMesh = MeshMaker.CreateWorldBoundsMesh(worldBounds);
+            worldMR.sharedMaterial = worldMaterial;
+
+            dustCompute.SetVector("worldBoundsMin", worldBounds.min);
+            dustCompute.SetVector("worldBoundsMax", worldBounds.max);
         }
 
         private void InitColliders()
@@ -524,8 +572,6 @@ namespace Rito.MillionDust
             dustCompute.SetVector("controllerForward", controller.Forward);
 
             // 물리
-            dustCompute.SetVector("worldBoundsMin", worldBounds.min);
-            dustCompute.SetVector("worldBoundsMax", worldBounds.max);
             dustCompute.SetVector("gravity", new Vector3(gravityX, gravityY, gravityZ));
             dustCompute.SetFloat("radius", dustScale);
             dustCompute.SetFloat("mass", mass);
