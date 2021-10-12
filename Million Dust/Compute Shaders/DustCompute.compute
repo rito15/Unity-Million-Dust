@@ -69,6 +69,7 @@ float cleanerSqrDist;       // 먼지 흡입 범위(반지름) - 제곱
 float cleanerSqrDeathRange; // 먼지 소멸 범위(반지름) - 제곱
 float cleanerSqrForce;      // 빨아들이는 힘 - 제곱
 float cleanerDotThreshold;  // 진공 청소기 원뿔 영역 내적 범위
+bool  cleanerKillOn;        // 흡수하여 먼지 제거할지 여부
 
 /* Emitter */
 float time;            // Time.time
@@ -210,6 +211,10 @@ void VacuumUp (uint3 id : SV_DispatchThreadID)
 
         // 속도
         velocityBuffer[i] += A * deltaTime;
+
+        // 제거 모드 확인
+        if(cleanerKillOn == false)
+            return;
 
         // 다음 프레임 위치 예측 : S = S0 + V * t
         float3 nextPos = currPos + velocityBuffer[i] * deltaTime;

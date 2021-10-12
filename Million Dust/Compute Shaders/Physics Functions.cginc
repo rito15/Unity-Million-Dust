@@ -42,6 +42,10 @@ float dustRadius, float elasticity)
     // 충돌 시 먼지 위치
     float3 contactPos = SphereCastToSphere(cur, next, sphere.xyz, dustRadius, sphere.w);
 
+    // Option : 표면 달라붙지 않고 미끄러지기
+    if(SqrMagnitude(cur - contactPos) < (sphere.w * sphere.w) * 1.1)
+        elasticity = 1;
+
     // 충돌 지점의 노멀 벡터
     float3 contactNormal = (contactPos - sphere.xyz) / (dustRadius + sphere.w);
 

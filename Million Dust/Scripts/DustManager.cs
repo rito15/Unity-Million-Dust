@@ -2,8 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-using System.Threading.Tasks;
-using System.Threading;
 
 // 날짜 : 2021-09-26 PM 9:47:41
 // 작성자 : Rito
@@ -116,11 +114,15 @@ namespace Rito.MillionDust
 
         private class SphereColliderSet
         {
+            /* Collider */
             private ComputeBuffer colliderBuffer;
             private List<DustSphereCollider> colliders;
-            private Vector4[] dataArray;
 
+            /* Data */
+            private Vector4[] dataArray;
             private int dataCount;
+
+            /* Compute Shader, Compute Buffer */
             private ComputeShader computeShader;
             private int shaderKernel;
             private string bufferName;
@@ -136,7 +138,7 @@ namespace Rito.MillionDust
                 this.countVariableName = countVariableName;
                 this.dataCount = 0;
 
-                colliderBuffer = new ComputeBuffer(1, 4);
+                colliderBuffer = new ComputeBuffer(1, 4); // 기본 값
                 computeShader.SetBuffer(shaderKernel, bufferName, colliderBuffer);
                 computeShader.SetInt(countVariableName, 0);
             }
@@ -491,6 +493,7 @@ namespace Rito.MillionDust
             dustCompute.SetFloat("cleanerSqrDist", cleaner.SqrDistance);
             dustCompute.SetFloat("cleanerSqrDeathRange", cleaner.SqrDeathRange);
             dustCompute.SetFloat("cleanerDotThreshold", Mathf.Cos(cleaner.AngleRad));
+            dustCompute.SetBool("cleanerKillOn", cleaner.KillMode);
 
             dustCompute.Dispatch(kernelVacuumUpID, kernelGroupSizeX, 1, 1);
         }
