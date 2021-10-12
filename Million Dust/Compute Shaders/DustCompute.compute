@@ -1,5 +1,6 @@
 ﻿
 #pragma kernel Populate
+#pragma kernel SetDustColors
 #pragma kernel Update
 #pragma kernel VacuumUp
 #pragma kernel Emit
@@ -98,25 +99,30 @@ void DestroyDust(uint i)
 /*******************************************************************
 /*                             Kernels
 /*******************************************************************/
-// 0 - 초기 생성
+// 초기 생성
 [NUM_THREADS_HEADER]
 void Populate (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
     
-    // [1] 위치
     float width = spawnBoundsMax.x - spawnBoundsMin.x;
-    float seed = i / (width * width);
+    float seed  = i / (width * width);
     dustBuffer[i].position = RandomRange13(seed, spawnBoundsMin, spawnBoundsMax);
-    dustBuffer[i].isAlive = TRUE;
+    dustBuffer[i].isAlive  = TRUE;
+}
 
-    // [2] 색상
-    float2 seed2d = float2(i % width, i / width);
-    float t = Random21(seed2d);
+// 먼지 색상 설정(2가지 중 랜덤)
+[NUM_THREADS_HEADER]
+void SetDustColors (uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x;
+    
+    float2 seed2d = float2(i % dustCount, i / dustCount);
+    float  t      = Random21(seed2d);
     dustColorBuffer[i] = lerp(dustColorA, dustColorB, t);
 }
 
-// 1 - 실시간 업데이트(물리)
+// 실시간 업데이트(물리)
 [NUM_THREADS_HEADER]
 void Update (uint3 id : SV_DispatchThreadID)
 {
@@ -171,7 +177,7 @@ void Update (uint3 id : SV_DispatchThreadID)
     dustBuffer[i].position = nextPos;
 }
 
-// 2 - 진공 청소기로 빨아들이기
+// 진공 청소기로 빨아들이기
 [NUM_THREADS_HEADER]
 void VacuumUp (uint3 id : SV_DispatchThreadID)
 {
@@ -237,7 +243,7 @@ void VacuumUp (uint3 id : SV_DispatchThreadID)
     }
 }
 
-// 3 - 죽었던 먼지들 살려서 발사
+// 죽었던 먼지들 살려서 발사
 [NUM_THREADS_HEADER]
 void Emit (uint3 id : SV_DispatchThreadID)
 {
@@ -281,7 +287,7 @@ void Emit (uint3 id : SV_DispatchThreadID)
     InterlockedAdd(aliveNumberBuffer[0], 1);
 }
 
-// 4 - 바람 불기
+// 바람 불기
 [NUM_THREADS_HEADER]
 void BlowWind (uint3 id : SV_DispatchThreadID)
 {

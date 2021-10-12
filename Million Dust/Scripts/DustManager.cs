@@ -86,6 +86,10 @@ namespace Rito.MillionDust
         private float deltaTime;
         private Bounds worldBounds;
 
+        private GameObject worldGO;
+        private MeshFilter worldMF;
+        private MeshRenderer worldMR;
+
         // Inputs & Mode
         private KeyCode cleanerKey = KeyCode.Alpha1;
         private KeyCode blowerKey  = KeyCode.Alpha2;
@@ -96,11 +100,12 @@ namespace Rito.MillionDust
         private Cone currentCone;
 
         // Compute Shader Data
-        private int kernelPopulateID;
-        private int kernelUpdateID;
-        private int kernelVacuumUpID;
-        private int kernelEmitID;
-        private int kernelBlowID;
+        private int kernelPopulate;
+        private int kernelSetDustColors;
+        private int kernelUpdate;
+        private int kernelVacuumUp;
+        private int kernelEmit;
+        private int kernelBlow;
         private int kernelGroupSizeX;
 
         // 게임 시작 시 초기화 작업 완료 후 처리
@@ -243,6 +248,7 @@ namespace Rito.MillionDust
             InitBuffers();
             SetBuffersToShaders();
             PopulateDusts();
+            SetDustColors();
             InitColliders();
 
             ProcessInitialJobs();
@@ -329,9 +335,20 @@ namespace Rito.MillionDust
         private void Reload()
         {
             Init();
+            CreateWorldBoundsMesh();
             SetBuffersToShaders();
-
+            InitComputeShader();
+            InitBuffers();
+            SetBuffersToShaders();
+            PopulateDusts();
         }
+
+        //private IEnumerator ReloadRoutine()
+        //{
+        //    int oldDustCount = dustCount;
+        //    Color oldDustColorA = dustColorA;
+        //    Color oldDustColorB = dustColorB;
+        //}
         #endregion
         /***********************************************************************
         *                               Init Methods
@@ -357,25 +374,27 @@ namespace Rito.MillionDust
         /// <summary> 월드 영역 큐브 메시 생성 </summary>
         private void CreateWorldBoundsMesh()
         {
-            GameObject go = new GameObject("World");
-            var mf = go.AddComponent<MeshFilter>();
-            var mr = go.AddComponent<MeshRenderer>();
-            mf.sharedMesh = MeshMaker.CreateWorldBoundsMesh(worldBounds);
-            mr.sharedMaterial = worldMaterial;
+            if(worldGO == null) worldGO = new GameObject("World");
+            if(worldMF == null) worldMF = worldGO.AddComponent<MeshFilter>();
+            if(worldMR == null) worldMR = worldGO.AddComponent<MeshRenderer>();
+
+            worldMF.sharedMesh = MeshMaker.CreateWorldBoundsMesh(worldBounds);
+            worldMR.sharedMaterial = worldMaterial;
         }
 
         private void InitKernels()
         {
-            kernelPopulateID = dustCompute.FindKernel("Populate");
-            kernelUpdateID   = dustCompute.FindKernel("Update");
-            kernelVacuumUpID = dustCompute.FindKernel("VacuumUp");
-            kernelEmitID     = dustCompute.FindKernel("Emit");
-            kernelBlowID     = dustCompute.FindKernel("BlowWind");
+            kernelPopulate      = dustCompute.FindKernel("Populate");
+            kernelSetDustColors = dustCompute.FindKernel("SetDustColors");
+            kernelUpdate   = dustCompute.FindKernel("Update");
+            kernelVacuumUp = dustCompute.FindKernel("VacuumUp");
+            kernelEmit     = dustCompute.FindKernel("Emit");
+            kernelBlow     = dustCompute.FindKernel("BlowWind");
         }
 
         private void InitComputeShader()
         {
-            dustCompute.GetKernelThreadGroupSizes(kernelUpdateID, out uint tx, out _, out _);
+            dustCompute.GetKernelThreadGroupSizes(kernelUpdate, out uint tx, out _, out _);
             kernelGroupSizeX = Mathf.CeilToInt((float)dustCount / tx);
 
             dustCompute.SetInt("dustCount", dustCount);
@@ -425,23 +444,25 @@ namespace Rito.MillionDust
         {
             dustMaterial.SetBuffer("_DustBuffer", dustBuffer);
             dustMaterial.SetBuffer("_DustColorBuffer", dustColorBuffer);
-            dustCompute.SetBuffer(kernelPopulateID, "dustBuffer", dustBuffer);
-            dustCompute.SetBuffer(kernelPopulateID, "dustColorBuffer", dustColorBuffer);
 
-            dustCompute.SetBuffer(kernelUpdateID, "dustBuffer", dustBuffer);
-            dustCompute.SetBuffer(kernelUpdateID, "velocityBuffer", dustVelocityBuffer);
-            dustCompute.SetBuffer(kernelUpdateID, "aliveNumberBuffer", aliveNumberBuffer);
+            dustCompute.SetBuffer(kernelPopulate, "dustBuffer", dustBuffer);
 
-            dustCompute.SetBuffer(kernelVacuumUpID, "dustBuffer", dustBuffer);
-            dustCompute.SetBuffer(kernelVacuumUpID, "velocityBuffer", dustVelocityBuffer);
-            dustCompute.SetBuffer(kernelVacuumUpID, "aliveNumberBuffer", aliveNumberBuffer);
+            dustCompute.SetBuffer(kernelSetDustColors, "dustColorBuffer", dustColorBuffer);
 
-            dustCompute.SetBuffer(kernelEmitID, "dustBuffer", dustBuffer);
-            dustCompute.SetBuffer(kernelEmitID, "velocityBuffer", dustVelocityBuffer);
-            dustCompute.SetBuffer(kernelEmitID, "aliveNumberBuffer", aliveNumberBuffer);
+            dustCompute.SetBuffer(kernelUpdate, "dustBuffer", dustBuffer);
+            dustCompute.SetBuffer(kernelUpdate, "velocityBuffer", dustVelocityBuffer);
+            dustCompute.SetBuffer(kernelUpdate, "aliveNumberBuffer", aliveNumberBuffer);
 
-            dustCompute.SetBuffer(kernelBlowID, "dustBuffer", dustBuffer);
-            dustCompute.SetBuffer(kernelBlowID, "velocityBuffer", dustVelocityBuffer);
+            dustCompute.SetBuffer(kernelVacuumUp, "dustBuffer", dustBuffer);
+            dustCompute.SetBuffer(kernelVacuumUp, "velocityBuffer", dustVelocityBuffer);
+            dustCompute.SetBuffer(kernelVacuumUp, "aliveNumberBuffer", aliveNumberBuffer);
+
+            dustCompute.SetBuffer(kernelEmit, "dustBuffer", dustBuffer);
+            dustCompute.SetBuffer(kernelEmit, "velocityBuffer", dustVelocityBuffer);
+            dustCompute.SetBuffer(kernelEmit, "aliveNumberBuffer", aliveNumberBuffer);
+
+            dustCompute.SetBuffer(kernelBlow, "dustBuffer", dustBuffer);
+            dustCompute.SetBuffer(kernelBlow, "velocityBuffer", dustVelocityBuffer);
         }
 
         /// <summary> 먼지들을 영역 내의 무작위 위치에 생성 </summary>
@@ -452,18 +473,21 @@ namespace Rito.MillionDust
 
             dustCompute.SetVector("spawnBoundsMin", spawnBounds.min);
             dustCompute.SetVector("spawnBoundsMax", spawnBounds.max);
+
+            dustCompute.Dispatch(kernelPopulate, kernelGroupSizeX, 1, 1);
+        }
+
+        /// <summary> 2가지 색상 사이의 무작위 색상을 먼지마다 설정 </summary>
+        private void SetDustColors()
+        {
             dustCompute.SetVector("dustColorA", dustColorA);
             dustCompute.SetVector("dustColorB", dustColorB);
-
-            dustCompute.GetKernelThreadGroupSizes(kernelPopulateID, out uint tx, out _, out _);
-            int groupSizeX = Mathf.CeilToInt((float)dustCount / tx);
-
-            dustCompute.Dispatch(kernelPopulateID, groupSizeX, 1, 1);
+            dustCompute.Dispatch(kernelSetDustColors, kernelGroupSizeX, 1, 1);
         }
 
         private void InitColliders()
         {
-            sphereColliderSet = new SphereColliderSet(this.dustCompute, kernelUpdateID, "sphereColliderBuffer", "sphereColliderCount");
+            sphereColliderSet = new SphereColliderSet(this.dustCompute, kernelUpdate, "sphereColliderBuffer", "sphereColliderCount");
         }
 
         #endregion
@@ -520,7 +544,7 @@ namespace Rito.MillionDust
             dustCompute.SetFloat("cleanerDotThreshold", Mathf.Cos(cleaner.AngleRad));
             dustCompute.SetBool("cleanerKillOn", cleaner.KillMode);
 
-            dustCompute.Dispatch(kernelVacuumUpID, kernelGroupSizeX, 1, 1);
+            dustCompute.Dispatch(kernelVacuumUp, kernelGroupSizeX, 1, 1);
         }
 
         /// <summary> 방출기 커널 실행 </summary>
@@ -535,7 +559,7 @@ namespace Rito.MillionDust
             dustCompute.SetFloat("emitterAngleRad", emitter.AngleRad);
             dustCompute.SetInt("emissionPerSec", emitter.EmissionPerSec);
 
-            dustCompute.Dispatch(kernelEmitID, kernelGroupSizeX, 1, 1);
+            dustCompute.Dispatch(kernelEmit, kernelGroupSizeX, 1, 1);
         }
 
         /// <summary> 송풍기 커널 실행 </summary>
@@ -547,13 +571,13 @@ namespace Rito.MillionDust
             dustCompute.SetFloat("blowerSqrDist", blower.SqrDistance);
             dustCompute.SetFloat("blowerDotThreshold", Mathf.Cos(blower.AngleRad));
 
-            dustCompute.Dispatch(kernelBlowID, kernelGroupSizeX, 1, 1);
+            dustCompute.Dispatch(kernelBlow, kernelGroupSizeX, 1, 1);
         }
 
         /// <summary> 물리 업데이트 </summary>
         private void UpdatePhysics()
         {
-            dustCompute.Dispatch(kernelUpdateID, kernelGroupSizeX, 1, 1);
+            dustCompute.Dispatch(kernelUpdate, kernelGroupSizeX, 1, 1);
 
             aliveNumberBuffer.GetData(aliveNumberArray);
             aliveNumber = (int)aliveNumberArray[0];
