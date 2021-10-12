@@ -104,10 +104,15 @@ void DestroyDust(uint i)
 void Populate (uint3 id : SV_DispatchThreadID)
 {
     uint i = id.x;
+
+    // 무작위 요소 추가 : XZ평면 반지름 1 크기의 원 좌표 가산
+    uint deg = i % 360;
+    float3 ranDir = float3(cos(deg), 0, sin(deg));
+    float3 ranPos = Random11(i) * ranDir;
     
-    float width = spawnBoundsMax.x - spawnBoundsMin.x;
-    float seed  = i / (width * width);
-    dustBuffer[i].position = RandomRange13(seed, spawnBoundsMin, spawnBoundsMax);
+    float width = SqrMagnitude(spawnBoundsMax - spawnBoundsMin);
+    float seed  = i * 100000 / (width * dustCount);
+    dustBuffer[i].position = RandomRange13(seed, spawnBoundsMin, spawnBoundsMax) + ranPos;
     dustBuffer[i].isAlive  = TRUE;
 }
 

@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Depth Intersection - Collider
-  m_Shader: {fileID: 4800000, guid: 36c962b1c4493cd4e91d1f87bdfee72d, type: 3}
+  m_Shader: {fileID: 4800000, guid: 99c406b1b155ea14294103fc27b2b20d, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 0
   m_EnableInstancingVariants: 1

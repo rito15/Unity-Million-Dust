@@ -239,13 +239,15 @@ namespace Rito.MillionDust
         #region .
         private void Start()
         {
-            Init();
+            ClampDustCount();
             InitCones();
 
             InitKernels();
             InitComputeShader();
-            InitBuffers();
+            InitArgsBuffer();
+            InitComputeBuffers();
             SetBuffersToShaders();
+
             PopulateDusts();
             SetDustColors();
             InitWorldBounds();
@@ -253,8 +255,7 @@ namespace Rito.MillionDust
 
             ProcessInitialJobs();
 
-            StartCoroutine(ResetWorldBoundsRoutine());
-            StartCoroutine(ResetDustColorsRoutine());
+            StartCoroutine(DetectDataChangesRoutine());
         }
 
         /// <summary> 초기화 이전에 쌓인 작업들 처리 </summary>
@@ -334,63 +335,47 @@ namespace Rito.MillionDust
             currentCone.ShowCone();
         }
 
-        /// <summary> 바뀐 설정 적용하여 전체 다시 로드 </summary>
-        private void Reload()
+        /// <summary> 필드 변경사항 감지하여 적용 </summary>
+        private IEnumerator DetectDataChangesRoutine()
         {
-            Init();
-            InitWorldBounds();
-            SetBuffersToShaders();
-            InitComputeShader();
-            InitBuffers();
-            SetBuffersToShaders();
-            PopulateDusts();
-        }
-
-        //private IEnumerator ReloadRoutine()
-        //{
-        //    int oldDustCount = dustCount;
-        //    Color oldDustColorA = dustColorA;
-        //    Color oldDustColorB = dustColorB;
-        //}
-
-        /// <summary> 월드 영역 변경 발생 시, 재생성 및 변경사항 적용 </summary>
-        private IEnumerator ResetWorldBoundsRoutine()
-        {
+            int oldDustCount      = this.dustCount;
+            Color oldDustColorA   = this.dustColorA;
+            Color oldDustColorB   = this.dustColorB;
             Vector3 oldWorldPivot = this.worldBottomCenter;
             Vector3 oldWorldSize  = this.worldSize;
 
             WaitForSeconds wfs = new WaitForSeconds(0.5f);
             while (true)
             {
+                // 1. 먼지 개수
+                if (oldDustCount != this.dustCount)
+                {
+                    ClampDustCount();
+                    InitComputeShader();
+                    InitComputeBuffers();
+                    SetBuffersToShaders();
+                    PopulateDusts();
+                    SetDustColors();
+                }
+                // 2. 먼지 색상
+                if (oldDustColorA != this.dustColorA ||
+                    oldDustColorB != this.dustColorB)
+                {
+                    SetDustColors();
+                }
+                // 3. 월드 영역
                 if (oldWorldPivot != this.worldBottomCenter ||
                     oldWorldSize  != this.worldSize)
                 {
                     InitWorldBounds();
                 }
 
-                oldWorldPivot = this.worldBottomCenter;
-                oldWorldSize  = this.worldSize;
-                yield return wfs;
-            }
-        }
-
-        /// <summary> 먼지 색상 변경 발생 시, 컴퓨트 쉐이더에 변경사항 적용 </summary>
-        private IEnumerator ResetDustColorsRoutine()
-        {
-            Color oldDustColorA = dustColorA;
-            Color oldDustColorB = dustColorB;
-
-            WaitForSeconds wfs = new WaitForSeconds(0.5f);
-            while (true)
-            {
-                if (oldDustColorA != this.dustColorA ||
-                    oldDustColorB != this.dustColorB)
-                {
-                    SetDustColors();
-                }
-
+                // 이전 값 저장
+                oldDustCount  = this.dustCount;
                 oldDustColorA = this.dustColorA;
                 oldDustColorB = this.dustColorB;
+                oldWorldPivot = this.worldBottomCenter;
+                oldWorldSize  = this.worldSize;
                 yield return wfs;
             }
         }
@@ -400,9 +385,9 @@ namespace Rito.MillionDust
         *                               Init Methods
         ***********************************************************************/
         #region .
-        private void Init()
+        private void ClampDustCount()
         {
-            aliveNumber = dustCount;
+            dustCount = Mathf.Clamp(dustCount, 1, 1_000_000);
         }
 
         private void InitCones()
@@ -433,14 +418,10 @@ namespace Rito.MillionDust
             dustCompute.SetInt("dustCount", dustCount);
         }
 
-        /// <summary> 컴퓨트 버퍼들 생성 </summary>
-        private void InitBuffers()
+        /// <summary> 메시 데이터 저장하는 인자 버퍼 생성 </summary>
+        private void InitArgsBuffer()
         {
-            if (argsBuffer         != null) argsBuffer.Release();
-            if (dustBuffer         != null) dustBuffer.Release();
-            if (dustColorBuffer    != null) dustColorBuffer.Release();
-            if (dustVelocityBuffer != null) dustVelocityBuffer.Release();
-            if (aliveNumberBuffer  != null) aliveNumberBuffer.Release();
+            if (argsBuffer != null) argsBuffer.Release();
 
             int subMeshIndex = 0;
 
@@ -456,7 +437,16 @@ namespace Rito.MillionDust
 
             argsBuffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
             argsBuffer.SetData(argsData);
-            
+        }
+
+        /// <summary> 먼지 개수에 영향 받는 컴퓨트 버퍼들 생성 </summary>
+        private void InitComputeBuffers()
+        {
+            if (dustBuffer         != null) dustBuffer.Release();
+            if (dustColorBuffer    != null) dustColorBuffer.Release();
+            if (dustVelocityBuffer != null) dustVelocityBuffer.Release();
+            if (aliveNumberBuffer  != null) aliveNumberBuffer.Release();
+
             // Dust Buffer
             dustBuffer = new ComputeBuffer(dustCount, sizeof(float) * 3 + sizeof(int));
 
