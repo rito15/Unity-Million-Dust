@@ -7,13 +7,13 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Depth Intersection - Collider
-  m_Shader: {fileID: 4800000, guid: 99c406b1b155ea14294103fc27b2b20d, type: 3}
+  m_Name: Cannon Ball
+  m_Shader: {fileID: 4800000, guid: e44e42bb0dbf9184790ada4fec8f4729, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 0
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 3002
   stringTagMap: {}
   disabledShaderPasses: []
   m_SavedProperties:
@@ -21,9 +21,9 @@ Material:
     m_TexEnvs: []
     m_Floats:
     - _Ambient: 0
-    - _FresnelIntensity: 0.8
+    - _FresnelIntensity: 3
     - _FresnelPower: 1
     - _Intersection: 0.6
     - __dirty: 0
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0, g: 0.9817288, b: 1, a: 1}

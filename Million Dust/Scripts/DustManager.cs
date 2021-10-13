@@ -14,8 +14,9 @@ namespace Rito.MillionDust
     [DisallowMultipleComponent]
     public class DustManager : MonoBehaviour
     {
-        private const int TRUE = 1;
-        private const int FALSE = 0;
+        // Singleton
+        public static DustManager Instance => _instance;
+        private static DustManager _instance;
 
         private struct Dust
         {
@@ -51,6 +52,7 @@ namespace Rito.MillionDust
         [SF] private VacuumCleaner cleaner;
         [SF] private Cone blower;
         [SF] private DustEmitter emitter;
+        [SF] private Cannon cannon;
 
         [Header("Physics")]
         [Range(-20f, 20f)]
@@ -94,6 +96,7 @@ namespace Rito.MillionDust
         private KeyCode cleanerKey = KeyCode.Alpha1;
         private KeyCode blowerKey  = KeyCode.Alpha2;
         private KeyCode emitterKey = KeyCode.Alpha3;
+        private KeyCode cannonKey  = KeyCode.Alpha4;
 
         private KeyCode operationKey  = KeyCode.Mouse0;
         private KeyCode showCursorKey = KeyCode.Mouse1;
@@ -238,6 +241,11 @@ namespace Rito.MillionDust
         *                               Unity Events
         ***********************************************************************/
         #region .
+        private void Awake()
+        {
+            _instance = this;
+        }
+
         private void Start()
         {
             ClampDustCount();
@@ -276,9 +284,6 @@ namespace Rito.MillionDust
             UpdateEmitter();
             UpdateBlower();
             UpdatePhysics();
-
-            if (Input.GetKeyDown(KeyCode.Z))
-                Explode();
 
             dustMaterial.SetFloat("_Scale", dustScale);
             Graphics.DrawMeshInstancedIndirect(dustMesh, 0, dustMaterial, worldBounds, argsBuffer);
@@ -398,6 +403,7 @@ namespace Rito.MillionDust
             cleaner.HideCone();
             emitter.HideCone();
             blower.HideCone();
+            cannon.HideCone();
 
             currentCone = cleaner;
             currentCone.ShowCone();
@@ -514,13 +520,17 @@ namespace Rito.MillionDust
             if (worldGO == null) worldGO = new GameObject("World");
             if (worldMF == null) worldMF = worldGO.AddComponent<MeshFilter>();
             if (worldMR == null) worldMR = worldGO.AddComponent<MeshRenderer>();
-            if (!worldGO.TryGetComponent(out MeshCollider _))
-                worldGO.AddComponent<MeshCollider>();
+
+            worldGO.tag = DustCollider.ColliderTag;
 
             CalculateWorldBounds(ref worldBounds);
 
             worldMF.sharedMesh = MeshMaker.CreateWorldBoundsMesh(worldBounds);
             worldMR.sharedMaterial = worldMaterial;
+
+            if (!worldGO.TryGetComponent(out MeshCollider col))
+                col = worldGO.AddComponent<MeshCollider>();
+            col.sharedMesh = worldMF.sharedMesh;
 
             dustCompute.SetVector("worldBoundsMin", worldBounds.min);
             dustCompute.SetVector("worldBoundsMax", worldBounds.max);
@@ -540,9 +550,10 @@ namespace Rito.MillionDust
         private void HandlePlayerInputs()
         {
             // 모드 변경
-            if (Input.GetKeyDown(cleanerKey)) ChangeCone(cleaner);
-            else if (Input.GetKeyDown(blowerKey)) ChangeCone(blower);
+            if (Input.GetKeyDown(cleanerKey))      ChangeCone(cleaner);
+            else if (Input.GetKeyDown(blowerKey))  ChangeCone(blower);
             else if (Input.GetKeyDown(emitterKey)) ChangeCone(emitter);
+            else if (Input.GetKeyDown(cannonKey))  ChangeCone(cannon);
 
             // 마우스 보이기 & 숨기기
             if (Input.GetKeyDown(showCursorKey))
@@ -553,6 +564,7 @@ namespace Rito.MillionDust
             cleaner.IsRunning = run && currentCone == cleaner;
             blower.IsRunning  = run && currentCone == blower;
             emitter.IsRunning = run && currentCone == emitter;
+            cannon.IsRunning  = run && currentCone == cannon;
         }
 
         /// <summary> 컴퓨트 쉐이더 공통 변수들 업데이트 </summary>
@@ -621,13 +633,21 @@ namespace Rito.MillionDust
             aliveNumberBuffer.GetData(aliveNumberArray);
             aliveNumber = (int)aliveNumberArray[0];
         }
+        #endregion
+        /***********************************************************************
+        *                               Public Methods
+        ***********************************************************************/
+        #region .
 
         /// <summary> Explode(폭발) 커널 실행 </summary>
-        private void Explode()
+        public void Explode(in Vector3 position, in float sqrRange, in float force)
         {
+            dustCompute.SetVector("explosionPosition", position);
+            dustCompute.SetFloat("explosionSqrRange", sqrRange);
+            dustCompute.SetFloat("explosionForce", force);
             dustCompute.Dispatch(kernelExplode, kernelGroupSizeX, 1, 1);
-
         }
+
         #endregion
     }
 }

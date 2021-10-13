@@ -87,6 +87,11 @@ float blowerSqrDist;       // 영향 범위(반지름) - 제곱
 float blowerSqrForce;      // 미는 힘 - 제곱
 float blowerDotThreshold;  // 원뿔 영역 내적 범위
 
+/* Explode */
+float3 explosionPosition; // 폭발 중심 위치
+float explosionSqrRange;  // 폭발 반지름 - 제곱
+float explosionForce;     // 폭발 힘
+
 /*******************************************************************
 /*                            Functions
 /*******************************************************************/
@@ -323,10 +328,6 @@ void BlowWind (uint3 id : SV_DispatchThreadID)
     }
 }
 
-float3 explosionPosition;
-float explosionSqrRadius;
-float explosionForce;
-
 // 지점 폭발
 [NUM_THREADS_HEADER]
 void Explode (uint3 id : SV_DispatchThreadID)
@@ -335,20 +336,14 @@ void Explode (uint3 id : SV_DispatchThreadID)
     if(dustBuffer[i].isAlive == FALSE) return;
     if(i >= dustCount) return;
 
-
-    explosionPosition = 0;
-    explosionSqrRadius = 300;
-    explosionForce = 2000;
-
-
     float3 dustPos = dustBuffer[i].position;             // 현재 프레임 먼지 위치
     float3 centerToDust = (dustPos - explosionPosition); // 폭발 중심 -> 먼지
     float sqrDist = SqrMagnitude(centerToDust);          // 폭발 중심<-> 먼지 사이 거리 제곱
 
     // 구형 범위 내에 포함되는 경우
-    if (sqrDist < explosionSqrRadius)
+    if (sqrDist < explosionSqrRange)
     {
-        float t = 1 - (sqrDist / explosionSqrRadius);
+        float t = 1 - (sqrDist / explosionSqrRange);
         float f = t * explosionForce;
         float3 dir = normalize(centerToDust);
 

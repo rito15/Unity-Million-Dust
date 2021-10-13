@@ -165,7 +165,7 @@ GameObject:
   - component: {fileID: 244192319}
   - component: {fileID: 244192320}
   m_Layer: 0
-  m_Name: Wind Blower
+  m_Name: 2. Wind Blower
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -220,7 +220,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &345767764
 Transform:
   m_ObjectHideFlags: 0
@@ -233,7 +233,7 @@ Transform:
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_Children: []
   m_Father: {fileID: 999038417}
-  m_RootOrder: 4
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!135 &345767765
 SphereCollider:
@@ -326,7 +326,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56ebc8caedfe125478818ba45e30d38c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  position: {x: 34.36, y: 2, z: 25}
+  position: {x: 35, y: 2, z: 25}
   radius: 8
 --- !u!23 &441897355
 MeshRenderer:
@@ -383,7 +383,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 441897353}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 34.36, y: 2, z: 25}
+  m_LocalPosition: {x: 35, y: 2, z: 25}
   m_LocalScale: {x: 16, y: 16, z: 16}
   m_Children: []
   m_Father: {fileID: 34968722}
@@ -483,7 +483,7 @@ GameObject:
   - component: {fileID: 697987788}
   - component: {fileID: 697987789}
   m_Layer: 0
-  m_Name: Vacuum Cleaner
+  m_Name: 1. Vacuum Cleaner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -636,6 +636,7 @@ Transform:
   - {fileID: 697987788}
   - {fileID: 244192319}
   - {fileID: 1656877670}
+  - {fileID: 1919914729}
   - {fileID: 1662239501}
   - {fileID: 345767764}
   m_Father: {fileID: 2037478757}
@@ -978,7 +979,7 @@ GameObject:
   - component: {fileID: 1656877670}
   - component: {fileID: 1656877671}
   m_Layer: 0
-  m_Name: Dust Emitter
+  m_Name: 3. Dust Emitter
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1046,7 +1047,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 999038417}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!81 &1662239502
 AudioListener:
@@ -1099,6 +1100,59 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!1 &1919914728
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1919914729}
+  - component: {fileID: 1919914730}
+  m_Layer: 0
+  m_Name: 4. Cannon
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1919914729
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1919914728}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 999038417}
+  m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1919914730
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1919914728}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85aab8a7d46bbc34aadaf5459c2bd6fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  coneMaterial: {fileID: 2100000, guid: 5455babacd950e3458f9474ee073dcd8, type: 2}
+  isRunning: 0
+  force: 100
+  distance: 5
+  angle: 45
+  cannonBallPrefab: {fileID: 8121042753049998215, guid: 8ae78a68ac0fd1f4c87ce4d529526384,
+    type: 3}
+  explosionRange: 25
+  explosionForce: 3000
+  shootingInterval: 1
 --- !u!1 &1936900215
 GameObject:
   m_ObjectHideFlags: 0
@@ -1130,7 +1184,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dustMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
   dustMaterial: {fileID: 2100000, guid: 580e99519544d7049bc9d6a36bb4e96b, type: 2}
-  dustCount: 300000
+  dustCount: 1000000
   dustScale: 0.4
   dustColorA: {r: 0, g: 0, b: 0, a: 1}
   dustColorB: {r: 0.58404064, g: 0, b: 1, a: 1}
@@ -1143,6 +1197,7 @@ MonoBehaviour:
   cleaner: {fileID: 697987789}
   blower: {fileID: 244192320}
   emitter: {fileID: 1656877671}
+  cannon: {fileID: 1919914730}
   gravityX: 0
   gravityY: -9.8
   gravityZ: 0
