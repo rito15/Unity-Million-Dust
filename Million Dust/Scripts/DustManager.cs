@@ -106,6 +106,7 @@ namespace Rito.MillionDust
         private int kernelVacuumUp;
         private int kernelEmit;
         private int kernelBlow;
+        private int kernelExplode;
         private int kernelGroupSizeX;
 
         // 게임 시작 시 초기화 작업 완료 후 처리
@@ -244,7 +245,6 @@ namespace Rito.MillionDust
 
             InitKernels();
             InitComputeShader();
-            InitArgsBuffer();
             InitComputeBuffers();
             SetBuffersToShaders();
 
@@ -276,6 +276,9 @@ namespace Rito.MillionDust
             UpdateEmitter();
             UpdateBlower();
             UpdatePhysics();
+
+            if (Input.GetKeyDown(KeyCode.Z))
+                Explode();
 
             dustMaterial.SetFloat("_Scale", dustScale);
             Graphics.DrawMeshInstancedIndirect(dustMesh, 0, dustMaterial, worldBounds, argsBuffer);
@@ -408,6 +411,7 @@ namespace Rito.MillionDust
             kernelVacuumUp = dustCompute.FindKernel("VacuumUp");
             kernelEmit     = dustCompute.FindKernel("Emit");
             kernelBlow     = dustCompute.FindKernel("BlowWind");
+            kernelExplode  = dustCompute.FindKernel("Explode");
         }
 
         private void InitComputeShader()
@@ -418,14 +422,17 @@ namespace Rito.MillionDust
             dustCompute.SetInt("dustCount", dustCount);
         }
 
-        /// <summary> 메시 데이터 저장하는 인자 버퍼 생성 </summary>
-        private void InitArgsBuffer()
+        /// <summary> 먼지 개수에 영향 받는 컴퓨트 버퍼들 생성 </summary>
+        private void InitComputeBuffers()
         {
-            if (argsBuffer != null) argsBuffer.Release();
-
-            int subMeshIndex = 0;
+            if (argsBuffer         != null) argsBuffer.Release();
+            if (dustBuffer         != null) dustBuffer.Release();
+            if (dustColorBuffer    != null) dustColorBuffer.Release();
+            if (dustVelocityBuffer != null) dustVelocityBuffer.Release();
+            if (aliveNumberBuffer  != null) aliveNumberBuffer.Release();
 
             // Args Buffer
+            int subMeshIndex = 0;
             uint[] argsData = new uint[]
             {
                 (uint)dustMesh.GetIndexCount(subMeshIndex),
@@ -437,15 +444,6 @@ namespace Rito.MillionDust
 
             argsBuffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
             argsBuffer.SetData(argsData);
-        }
-
-        /// <summary> 먼지 개수에 영향 받는 컴퓨트 버퍼들 생성 </summary>
-        private void InitComputeBuffers()
-        {
-            if (dustBuffer         != null) dustBuffer.Release();
-            if (dustColorBuffer    != null) dustColorBuffer.Release();
-            if (dustVelocityBuffer != null) dustVelocityBuffer.Release();
-            if (aliveNumberBuffer  != null) aliveNumberBuffer.Release();
 
             // Dust Buffer
             dustBuffer = new ComputeBuffer(dustCount, sizeof(float) * 3 + sizeof(int));
@@ -486,6 +484,9 @@ namespace Rito.MillionDust
 
             dustCompute.SetBuffer(kernelBlow, "dustBuffer", dustBuffer);
             dustCompute.SetBuffer(kernelBlow, "velocityBuffer", dustVelocityBuffer);
+
+            dustCompute.SetBuffer(kernelExplode, "dustBuffer", dustBuffer);
+            dustCompute.SetBuffer(kernelExplode, "velocityBuffer", dustVelocityBuffer);
         }
 
         /// <summary> 먼지들을 영역 내의 무작위 위치에 생성 </summary>
@@ -513,6 +514,8 @@ namespace Rito.MillionDust
             if (worldGO == null) worldGO = new GameObject("World");
             if (worldMF == null) worldMF = worldGO.AddComponent<MeshFilter>();
             if (worldMR == null) worldMR = worldGO.AddComponent<MeshRenderer>();
+            if (!worldGO.TryGetComponent(out MeshCollider _))
+                worldGO.AddComponent<MeshCollider>();
 
             CalculateWorldBounds(ref worldBounds);
 
@@ -617,6 +620,13 @@ namespace Rito.MillionDust
 
             aliveNumberBuffer.GetData(aliveNumberArray);
             aliveNumber = (int)aliveNumberArray[0];
+        }
+
+        /// <summary> Explode(폭발) 커널 실행 </summary>
+        private void Explode()
+        {
+            dustCompute.Dispatch(kernelExplode, kernelGroupSizeX, 1, 1);
+
         }
         #endregion
     }

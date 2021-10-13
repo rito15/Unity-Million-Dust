@@ -11,6 +11,7 @@ namespace Rito.MillionDust
     /// <summary> 
     /// 컴퓨트 쉐이더 내에서 사용될 구체 콜라이더
     /// </summary>
+    [DisallowMultipleComponent]
     public class DustSphereCollider : MonoBehaviour
     {
         [SerializeField] private Vector3 position = Vector3.zero;
@@ -34,6 +35,9 @@ namespace Rito.MillionDust
 
             ValidateData();
             dustManager.AddSphereCollider(this);
+
+            if (!TryGetComponent(out SphereCollider _))
+                gameObject.AddComponent<SphereCollider>();
         }
 
         private void OnDisable()

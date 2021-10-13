@@ -5,6 +5,7 @@
 #pragma kernel VacuumUp
 #pragma kernel Emit
 #pragma kernel BlowWind
+#pragma kernel Explode
 
 #include "Type Definitions.cginc"
 #include "Math Functions.cginc"
@@ -319,5 +320,40 @@ void BlowWind (uint3 id : SV_DispatchThreadID)
             float3 A = F / mass;
             velocityBuffer[i] += A * deltaTime;
         }
+    }
+}
+
+float3 explosionPosition;
+float explosionSqrRadius;
+float explosionForce;
+
+// 지점 폭발
+[NUM_THREADS_HEADER]
+void Explode (uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x;
+    if(dustBuffer[i].isAlive == FALSE) return;
+    if(i >= dustCount) return;
+
+
+    explosionPosition = 0;
+    explosionSqrRadius = 300;
+    explosionForce = 2000;
+
+
+    float3 dustPos = dustBuffer[i].position;             // 현재 프레임 먼지 위치
+    float3 centerToDust = (dustPos - explosionPosition); // 폭발 중심 -> 먼지
+    float sqrDist = SqrMagnitude(centerToDust);          // 폭발 중심<-> 먼지 사이 거리 제곱
+
+    // 구형 범위 내에 포함되는 경우
+    if (sqrDist < explosionSqrRadius)
+    {
+        float t = 1 - (sqrDist / explosionSqrRadius);
+        float f = t * explosionForce;
+        float3 dir = normalize(centerToDust);
+
+        float3 F = dir * f;
+        float3 A = F / mass;
+        velocityBuffer[i] += A * deltaTime;
     }
 }
