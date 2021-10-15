@@ -183,6 +183,11 @@ void Update (uint3 id : SV_DispatchThreadID)
             CalculateSphereCollision(currPos, nextPos, velocityBuffer[i], sphere, radius, elasticity);
         }
     }
+
+    //if(CheckInCubeBounds(currPos, radius, -5, 5))
+    //    dustColorBuffer[i] = float3(1, 0, 0);
+    //else
+    //    dustColorBuffer[i] = 1;
     
     // 다음 위치 적용
     dustBuffer[i].position = nextPos;

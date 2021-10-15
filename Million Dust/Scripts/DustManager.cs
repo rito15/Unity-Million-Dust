@@ -475,6 +475,7 @@ namespace Rito.MillionDust
             dustCompute.SetBuffer(kernelPopulate, "dustBuffer", dustBuffer);
 
             dustCompute.SetBuffer(kernelSetDustColors, "dustColorBuffer", dustColorBuffer);
+            //dustCompute.SetBuffer(kernelUpdate, "dustColorBuffer", dustColorBuffer);
 
             dustCompute.SetBuffer(kernelUpdate, "dustBuffer", dustBuffer);
             dustCompute.SetBuffer(kernelUpdate, "velocityBuffer", dustVelocityBuffer);

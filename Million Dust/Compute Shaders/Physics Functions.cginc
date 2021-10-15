@@ -77,6 +77,17 @@ float3 RaycastToPlane(float3 A, float3 B, Plane plane)
     return C;
 }
 
+bool CheckInCubeBounds(float3 position, float radius, float3 cubeMin, float3 cubeMax)
+{
+    if(position.x + radius < cubeMin.x) return false;
+    if(position.y + radius < cubeMin.y) return false;
+    if(position.z + radius < cubeMin.z) return false;
+    if(position.x - radius > cubeMax.x) return false;
+    if(position.y - radius > cubeMax.y) return false;
+    if(position.z - radius > cubeMax.z) return false;
+    return true;
+}
+
 #define IN_BOUNDS 0
 #define OUT_OF_PX 1 // +x
 #define OUT_OF_MX 2 // -x

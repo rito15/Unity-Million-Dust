@@ -3,11 +3,13 @@
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
+        _CutOff("Alphatest Cutoff", Range(0, 1)) = 0.5
     }
     SubShader
     {
-        Tags { "Queue"="Transparent+1" "RenderType"="Transparent" "IgnoreProjector"="True" }
-        ZWrite Off
+        //Tags { "Queue"="Transparent+1" "RenderType"="Transparent" "IgnoreProjector"="True" }
+        Tags { "Queue"="AlphaTest" "RenderType"="TransparentCutout"  "IgnoreProjector"="True"}
+        //ZWrite Off
         Lighting Off
         Fog { Mode Off }
         Blend SrcAlpha OneMinusSrcAlpha 
@@ -74,6 +76,7 @@
             //                                  Fragment Shader
             // ========================================================================================
             sampler2D _MainTex;
+            fixed _CutOff;
 
             fixed4 frag (v2f i) : SV_Target
             {
@@ -85,6 +88,8 @@
 
                 fixed4 col = tex2D(_MainTex, i.uv);
                 col.rgb = i.dustColor * col.a;
+
+                clip(col.a - _CutOff);
 
                 return col;
             }
