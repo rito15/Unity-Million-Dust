@@ -1187,7 +1187,7 @@ MonoBehaviour:
   dustMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
   dustMaterial: {fileID: 2100000, guid: 580e99519544d7049bc9d6a36bb4e96b, type: 2}
   dustCount: 1000000
-  dustScale: 0.4
+  dustScale: 0.5
   dustColorA: {r: 0, g: 0, b: 0, a: 1}
   dustColorB: {r: 0.58404064, g: 0, b: 1, a: 1}
   spawnBottomCenter: {x: 0, y: 5, z: 0}

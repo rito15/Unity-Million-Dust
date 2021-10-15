@@ -24,7 +24,7 @@ Material:
     - _FresnelIntensity: 0.8
     - _FresnelPower: 1
     - _Intersection: 0.6
-    - _Power: 6
+    - _Power: 3
     - __dirty: 0
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 0.7490196}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}

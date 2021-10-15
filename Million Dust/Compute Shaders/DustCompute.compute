@@ -180,11 +180,20 @@ void Update (uint3 id : SV_DispatchThreadID)
         bool sphereCollided = CheckSphereIntersection(float4(nextPos, radius), sphere);
         if(sphereCollided)
         {
-            CalculateSphereCollision(currPos, nextPos, velocityBuffer[i], sphere, radius, elasticity);
+            CalculateSphereCollision(currPos, nextPos, velocityBuffer[i], radius, sphere, elasticity);
         }
     }
 
-    //if(CheckInCubeBounds(currPos, radius, -5, 5))
+    // [3] Cube Colliders
+    float3 cubeMin = -5;
+    float3 cubeMax = 5;
+
+    if(CheckCubeIntersection(currPos, radius, cubeMin, cubeMax))
+    {
+        CalculateCubeCollision(currPos, nextPos, velocityBuffer[i], radius, cubeMin, cubeMax, elasticity);
+    }
+
+    //if(CheckCubeIntersection(currPos, radius, -5, 5))
     //    dustColorBuffer[i] = float3(1, 0, 0);
     //else
     //    dustColorBuffer[i] = 1;
