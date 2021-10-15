@@ -15,6 +15,7 @@ namespace Rito.MillionDust
     {
         [Header("Cannon Options")]
         [SerializeField] private GameObject cannonBallPrefab;
+        [SerializeField] private GameObject explosionPrefab;
 
         [Range(1, 200f)]
         [SerializeField] private float explosionRange = 25f;
@@ -45,6 +46,7 @@ namespace Rito.MillionDust
             GameObject clone = Instantiate(cannonBallPrefab, transform.position, Quaternion.identity);
             CannonBall ball = clone.GetComponent<CannonBall>();
 
+            ball.SetExplosionPrefab(explosionPrefab, explosionRange * 2f);
             ball.Shoot(transform.forward * force, explosionRange, explosionForce);
         }
     }

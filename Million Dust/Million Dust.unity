@@ -1150,6 +1150,8 @@ MonoBehaviour:
   angle: 45
   cannonBallPrefab: {fileID: 8121042753049998215, guid: 8ae78a68ac0fd1f4c87ce4d529526384,
     type: 3}
+  explosionPrefab: {fileID: 3962023664168662349, guid: 071687ae9ba46e34a94abae928fe03c2,
+    type: 3}
   explosionRange: 25
   explosionForce: 3000
   shootingInterval: 1
