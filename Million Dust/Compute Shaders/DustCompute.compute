@@ -167,13 +167,7 @@ void Update (uint3 id : SV_DispatchThreadID)
     float3 currPos = dustBuffer[i].position;
     float3 nextPos = currPos + velocityBuffer[i] * deltaTime;
 
-    // [1] 월드 영역 제한(Cube)
-    Bounds bounds;
-    bounds.min = worldBoundsMin;
-    bounds.max = worldBoundsMax;
-    ConfineWithinCubeBounds(currPos, nextPos, velocityBuffer[i], radius, elasticity, bounds);
-
-    // [2] Sphere Colliders
+    // [1] Sphere Colliders
     for(uint scIndex = 0; scIndex < sphereColliderCount; scIndex++)
     {
         float4 sphere = sphereColliderBuffer[scIndex];
@@ -184,7 +178,7 @@ void Update (uint3 id : SV_DispatchThreadID)
         }
     }
 
-    // [3] Cube Colliders
+    // [2] Cube Colliders
     float3 cubeMin = -5;
     float3 cubeMax = 5;
 
@@ -192,6 +186,12 @@ void Update (uint3 id : SV_DispatchThreadID)
     {
         CalculateCubeCollision(currPos, nextPos, velocityBuffer[i], radius, cubeMin, cubeMax, elasticity);
     }
+
+    // [Last] 월드 영역 제한(Cube)
+    Bounds bounds;
+    bounds.min = worldBoundsMin;
+    bounds.max = worldBoundsMax;
+    ConfineWithinCubeBounds(currPos, nextPos, velocityBuffer[i], radius, elasticity, bounds);
 
     //if(CheckCubeIntersection(currPos, radius, -5, 5))
     //    dustColorBuffer[i] = float3(1, 0, 0);

@@ -32,6 +32,8 @@ namespace Rito.MillionDust
         [SF] private int dustCount = 100000; // 생성할 먼지 개수
         [Range(0.01f, 2f)]
         [SF] private float dustScale = 1f;
+        [Range(0.01f, 1f)]
+        [SF] private float dustRadius = 1f;
 
         [Space(4f)]
         [SF] private Color dustColorA = Color.black;
@@ -579,7 +581,7 @@ namespace Rito.MillionDust
 
             // 물리
             dustCompute.SetVector("gravity", new Vector3(gravityX, gravityY, gravityZ));
-            dustCompute.SetFloat("radius", dustScale);
+            dustCompute.SetFloat("radius", dustRadius);
             dustCompute.SetFloat("mass", mass);
             dustCompute.SetFloat("airResistance", airResistance);
             dustCompute.SetFloat("elasticity", elasticity);

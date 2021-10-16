@@ -6,6 +6,11 @@
 #define PZ  3 // +z
 #define MZ -3 // -z
 
+#define FLAG_ERROR  -1
+#define FLAG_X 0
+#define FLAG_Y 1
+#define FLAG_Z 2
+
 // 구체끼리의 충돌 여부 검사
 // xyz : Position
 // w : Radius
@@ -101,8 +106,8 @@ float3 RaycastToPlane(float3 A, float3 B, Plane plane)
 float3 RaycastToPlaneXY(float3 A, float3 B, float planeZ)
 {
     // A가 B보다 P에 더 가까이 위치한 경우
-    if((planeZ - A.z) * (planeZ - B.z) <= 0)
-        return A;
+    //if((planeZ - A.z) * (planeZ - B.z) <= 0)
+    //    return A;
 
     float ratio = (B.z - planeZ) / (B.z - A.z);
     float3 C;
@@ -112,9 +117,6 @@ float3 RaycastToPlaneXY(float3 A, float3 B, float planeZ)
 }
 float3 RaycastToPlaneXZ(float3 A, float3 B, float planeY)
 {
-    if((planeY - A.y) * (planeY - B.y) < 0)
-        return A;
-
     float ratio = (B.y - planeY) / (B.y - A.y);
     float3 C;
     C.xz = float2(A.xz - B.xz) * ratio + float2(B.xz);
@@ -123,9 +125,6 @@ float3 RaycastToPlaneXZ(float3 A, float3 B, float planeY)
 }
 float3 RaycastToPlaneYZ(float3 A, float3 B, float planeX)
 {
-    if((planeX - A.x) * (planeX - B.x) <= 0)
-        return A;
-
     float ratio = (B.x - planeX) / (B.x - A.x);
     float3 C;
     C.yz = float2(A.yz - B.yz) * ratio + float2(B.yz);
@@ -163,7 +162,7 @@ float dustRadius, float3 cubeMin, float3 cubeMax, float elasticity)
     cubeMin -= dustRadius;
     cubeMax += dustRadius;
 
-    // 내부에서 내부로 이동하는 경우, 가장 가까운 외부로 투영시키기
+    /* 내부에서 내부로 이동하는 경우, 가장 가까운 큐브 외곽으로 투영시키기 */
     if(ExRange3(cur, cubeMin, cubeMax))
     {
         float3 cubeCenter = (cubeMin + cubeMax) * 0.5;
@@ -174,84 +173,54 @@ float dustRadius, float3 cubeMin, float3 cubeMax, float elasticity)
         float maxElem = MaxElement(absInPos);
         if(maxElem == absInPos.x)
         {
-            if(inPos.x > 0)
-            {
-                next.x = max(cubeMax.x, next.x);
-            }
-            else
-            {
-                next.x = min(cubeMin.x, next.x);
-            }
+            next.x = (inPos.x > 0) ? max(cubeMax.x, next.x) : min(cubeMin.x, next.x);
         }
         else if(maxElem == absInPos.y)
         {
-            if(inPos.y > 0)
-            {
-                next.y = max(cubeMax.y, next.y);
-            }
-            else
-            {
-                next.y = min(cubeMin.y, next.y);
-            }
+            next.y = (inPos.y > 0) ? max(cubeMax.y, next.y) : min(cubeMin.y, next.y);
         }
         else
         {
-            if(inPos.z > 0)
-            {
-                next.z = max(cubeMax.z, next.z);
-            }
-            else
-            {
-                next.z = min(cubeMin.z, next.z);
-            }
-            //next.z = inPos.z > 0 ? cubeMax.z : cubeMin.z;
+            next.z = (inPos.z > 0) ? max(cubeMax.z, next.z) : min(cubeMin.z, next.z);
         }
 
-        //velocity = 0;
         return;
     }
     
-    float3 ray = next - cur;
-    
-    int flag = -1; // 0 : X, 1 : Y, 2 : Z
+    float3 ray     = next - cur;
     float3 contact = 0;
-    half3 raySign = (ray >= 0);
+    half3  raySign = (ray >= 0);
+    int    flag    = FLAG_ERROR; // XYZ 선택 플래그
 
-    //if(flag < 0)
+    /* 큐브 6면에 캐스트하여 충돌 지점 구하기 */
+    //if(flag == FLAG_ERROR)
     {
         if(raySign.x > 0) contact = RaycastToPlaneYZ(cur, next, cubeMin.x);
         else              contact = RaycastToPlaneYZ(cur, next, cubeMax.x);
 
         if(InRange2(contact.yz, cubeMin.yz, cubeMax.yz))
-            flag = 0;
+            flag = FLAG_X;
     }
-    if(flag < 0)
+    if(flag == FLAG_ERROR)
     {
         if(raySign.y > 0) contact = RaycastToPlaneXZ(cur, next, cubeMin.y);
         else              contact = RaycastToPlaneXZ(cur, next, cubeMax.y);
 
         if(InRange2(contact.xz, cubeMin.xz, cubeMax.xz))
-            flag = 1;
+            flag = FLAG_Y;
     }
-    if(flag < 0)
+    if(flag == FLAG_ERROR)
     {
         if(raySign.z > 0) contact = RaycastToPlaneXY(cur, next, cubeMin.z);
         else              contact = RaycastToPlaneXY(cur, next, cubeMax.z);
 
         if(InRange2(contact.xy, cubeMin.xy, cubeMax.xy))
-            flag = 2;
-    }
-    // NOTHING
-    if(flag < 0)
-    {
-        next = cur;
-        velocity *= elasticity;
-        return;
+            flag = FLAG_Z;
     }
     
-    // 최종 계산
+    /* 최종 계산 */
     float rayLen = length(ray);
-    if(rayLen < 0.1) // 지터링 처리
+    if(rayLen < 0.05) // 지터링 처리
         elasticity = rayLen;
 
     float inLen = length(contact - cur);                  // 입사 벡터 길이
@@ -289,8 +258,7 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
 
     Plane plane;
     float limit;
-    float3 reversedCurToNext; // 평면에 반사된 벡터
-    float3 reversedVelocity;
+    int flag = FLAG_ERROR;
 
     switch(status)
     {
@@ -304,8 +272,7 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
             // 내부에서 외부로 이동하는 경우, 반사 벡터 계산을 위한 변수들 초기화
             plane.normal   = float3(1, 0, 0);
             plane.position = float3(limit, 0, 0);
-            reversedCurToNext = ReverseX(next - cur);
-            reversedVelocity  = ReverseX(velocity);
+            flag = FLAG_X;
             break;
 
         case MX:
@@ -317,8 +284,7 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
             }
             plane.normal   = float3(-1, 0, 0);
             plane.position = float3(limit, 0, 0);
-            reversedCurToNext = ReverseX(next - cur);
-            reversedVelocity  = ReverseX(velocity);
+            flag = FLAG_X;
             break;
 
         case PY:
@@ -330,8 +296,7 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
             }
             plane.normal   = float3(0, 1, 0);
             plane.position = float3(0, limit, 0);
-            reversedCurToNext = ReverseY(next - cur);
-            reversedVelocity  = ReverseY(velocity);
+            flag = FLAG_Y;
             break;
 
         case MY:
@@ -343,8 +308,7 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
             }
             plane.normal   = float3(0, -1, 0);
             plane.position = float3(0, limit, 0);
-            reversedCurToNext = ReverseY(next - cur);
-            reversedVelocity  = ReverseY(velocity);
+            flag = FLAG_Y;
             break;
 
         case PZ:
@@ -356,8 +320,7 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
             }
             plane.normal   = float3(0, 0, 1);
             plane.position = float3(0, 0, limit);
-            reversedCurToNext = ReverseZ(next - cur);
-            reversedVelocity  = ReverseZ(velocity);
+            flag = FLAG_Z;
             break;
 
         case MZ:
@@ -369,10 +332,13 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
             }
             plane.normal   = float3(0, 0, -1);
             plane.position = float3(0, 0, limit);
-            reversedCurToNext = ReverseZ(next - cur);
-            reversedVelocity  = ReverseZ(velocity);
+            flag = FLAG_Z;
             break;
     }
+
+    // 반사 벡터 구하기
+    float3 rfRay = Reverse(next - cur, flag);
+    float3 rfVelocity = Reverse(velocity, flag);
     
     // 직선과 평면의 충돌 계산
     float3 currToNext = next - cur;
@@ -380,9 +346,9 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
     float rayLen   = length(currToNext);               // 이동 벡터의 길이
     float inLen    = length(cur - contact);            // 입사 벡터 길이
     float outLen   = (rayLen - inLen) * elasticity;    // 반사 벡터 길이(운동량 감소)
-    float3 outVec  = reversedCurToNext * (outLen / rayLen);
+    float3 outVec  = rfRay * (outLen / rayLen);
 
     // Outputs
-    next = contact + outVec;                  // 다음 프레임 위치 변경
-    velocity = reversedVelocity * elasticity; // 속도 변경
+    next = contact + outVec;            // 다음 프레임 위치 변경
+    velocity = rfVelocity * elasticity; // 속도 변경
 }
