@@ -21,14 +21,14 @@ bool CheckSphereIntersection(float4 sphereA, float4 sphereB)
 
 // 구체와 육면체(AABB)의 충돌 여부 검사
 // AABB : Axis Aligned Bounding Box
-bool CheckCubeIntersection(float3 position, float radius, float3 cubeMin, float3 cubeMax)
+bool CheckBoxIntersection(float3 position, float radius, Bounds box)
 {
-    if(position.x + radius < cubeMin.x) return false;
-    if(position.y + radius < cubeMin.y) return false;
-    if(position.z + radius < cubeMin.z) return false;
-    if(position.x - radius > cubeMax.x) return false;
-    if(position.y - radius > cubeMax.y) return false;
-    if(position.z - radius > cubeMax.z) return false;
+    if(position.x + radius < box.min.x) return false;
+    if(position.y + radius < box.min.y) return false;
+    if(position.z + radius < box.min.z) return false;
+    if(position.x - radius > box.max.x) return false;
+    if(position.y - radius > box.max.y) return false;
+    if(position.z - radius > box.max.z) return false;
     return true;
 }
 
@@ -132,56 +132,49 @@ float3 RaycastToPlaneYZ(float3 A, float3 B, float planeX)
     return C;
 }
 
-// Cube(AABB) Collider에 충돌 검사하여 먼지 위치 및 속도 변경
+// Box(AABB) Collider에 충돌 검사하여 먼지 위치 및 속도 변경
 // - cur  : 현재 프레임에서의 위치
 // - next : 다음 프레임에서의 위치 [INOUT]
-// - velocity : 현재 이동 속도     [INOUT]
+// - velocity   : 현재 이동 속도   [INOUT]
 // - dustRadius : 먼지 반지름
-// - cubeMin : 육면체 최소 지점 꼭짓점
-// - cubeMax : 육면체 최대 지점 꼭짓점
+// - box        : Box 영역 범위
 // - elasticity : 탄성력 계수(0 ~ 1) : 충돌 시 보존되는 운동량 비율
-void CalculateCubeCollision(float3 cur, inout float3 next, inout float3 velocity,
-float dustRadius, float3 cubeMin, float3 cubeMax, float elasticity)
+void CalculateBoxCollision(float3 cur, inout float3 next, inout float3 velocity,
+float dustRadius, Bounds box, float elasticity)
 {
     /*
-        [방법론]
-        1. 레이의 xyz 성분 각각 부호를 판단하여 평면 후보 6개를 3개로 줄인다.
+        [흐름]
+        1. 레이의 xyz 성분 각각 부호를 판단하여 큐브의 평면 후보 6개를 3개로 줄인다.
         2. 레이를 평면 3개(먼지 반지름 고려하여 확장)에 차례로 캐스트하여 접점을 구한다.
         3. 얻은 접점이 각각의 면 범위 내에 있다면 해당 위치를 충돌지점으로 결정한다.
         4. 레이와 속도 벡터에 대해 반사 벡터와 반사 속도를 구한다.
         5. 탄성력을 적용하여 다음 위치와 다음 속도를 결정한다.
     */
-
-    //if(rayLen < 0.1)
-    //{
-    //    next = cur;
-    //    velocity *= elasticity;
-    //}
     
     // 먼지 반지름 고려하기
-    cubeMin -= dustRadius;
-    cubeMax += dustRadius;
+    float3 boxMin = box.min - dustRadius;
+    float3 boxMax = box.max + dustRadius;
 
     /* 내부에서 내부로 이동하는 경우, 가장 가까운 큐브 외곽으로 투영시키기 */
-    if(ExRange3(cur, cubeMin, cubeMax))
+    if(ExRange3(cur, boxMin, boxMax))
     {
-        float3 cubeCenter = (cubeMin + cubeMax) * 0.5;
-        float3 cubeScale = cubeMax - cubeMin;
-        float3 inPos = (cur - cubeCenter) / cubeScale; // 큐브의 중심을 원점으로 하는 먼지 좌표
+        float3 boxCenter = (boxMin + boxMax) * 0.5;
+        float3 boxScale = boxMax - boxMin;
+        float3 inPos = (cur - boxCenter) / boxScale; // 큐브의 중심을 원점으로 하는 먼지 좌표
         float3 absInPos = abs(inPos);
 
         float maxElem = MaxElement(absInPos);
         if(maxElem == absInPos.x)
         {
-            next.x = (inPos.x > 0) ? max(cubeMax.x, next.x) : min(cubeMin.x, next.x);
+            next.x = (inPos.x > 0) ? max(boxMax.x, next.x) : min(boxMin.x, next.x);
         }
         else if(maxElem == absInPos.y)
         {
-            next.y = (inPos.y > 0) ? max(cubeMax.y, next.y) : min(cubeMin.y, next.y);
+            next.y = (inPos.y > 0) ? max(boxMax.y, next.y) : min(boxMin.y, next.y);
         }
         else
         {
-            next.z = (inPos.z > 0) ? max(cubeMax.z, next.z) : min(cubeMin.z, next.z);
+            next.z = (inPos.z > 0) ? max(boxMax.z, next.z) : min(boxMin.z, next.z);
         }
 
         return;
@@ -195,26 +188,26 @@ float dustRadius, float3 cubeMin, float3 cubeMax, float elasticity)
     /* 큐브 6면에 캐스트하여 충돌 지점 구하기 */
     //if(flag == FLAG_ERROR)
     {
-        if(raySign.x > 0) contact = RaycastToPlaneYZ(cur, next, cubeMin.x);
-        else              contact = RaycastToPlaneYZ(cur, next, cubeMax.x);
+        if(raySign.x > 0) contact = RaycastToPlaneYZ(cur, next, boxMin.x);
+        else              contact = RaycastToPlaneYZ(cur, next, boxMax.x);
 
-        if(InRange2(contact.yz, cubeMin.yz, cubeMax.yz))
+        if(InRange2(contact.yz, boxMin.yz, boxMax.yz))
             flag = FLAG_X;
     }
     if(flag == FLAG_ERROR)
     {
-        if(raySign.y > 0) contact = RaycastToPlaneXZ(cur, next, cubeMin.y);
-        else              contact = RaycastToPlaneXZ(cur, next, cubeMax.y);
+        if(raySign.y > 0) contact = RaycastToPlaneXZ(cur, next, boxMin.y);
+        else              contact = RaycastToPlaneXZ(cur, next, boxMax.y);
 
-        if(InRange2(contact.xz, cubeMin.xz, cubeMax.xz))
+        if(InRange2(contact.xz, boxMin.xz, boxMax.xz))
             flag = FLAG_Y;
     }
     if(flag == FLAG_ERROR)
     {
-        if(raySign.z > 0) contact = RaycastToPlaneXY(cur, next, cubeMin.z);
-        else              contact = RaycastToPlaneXY(cur, next, cubeMax.z);
+        if(raySign.z > 0) contact = RaycastToPlaneXY(cur, next, boxMin.z);
+        else              contact = RaycastToPlaneXY(cur, next, boxMax.z);
 
-        if(InRange2(contact.xy, cubeMin.xy, cubeMax.xy))
+        if(InRange2(contact.xy, boxMin.xy, boxMax.xy))
             flag = FLAG_Z;
     }
     
@@ -229,7 +222,7 @@ float dustRadius, float3 cubeMin, float3 cubeMax, float elasticity)
     float3 rfRay = Reverse(ray, flag) * (rfLen / rayLen); // 반사 벡터
     float3 rfVel = Reverse(velocity, flag) * elasticity;  // 반사 속도 벡터(탄성 적용)
     
-    next = contact + rfRay;
+    next     = contact + rfRay;
     velocity = rfVel;
 }
 
@@ -240,7 +233,7 @@ float dustRadius, float3 cubeMin, float3 cubeMax, float elasticity)
 // - dustRadius : 먼지의 크기
 // - elasticity : 탄성력 계수(0 ~ 1)
 // - bounds : 큐브 영역
-void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocity, float dustRadius, float elasticity, Bounds bounds)
+void ConfineWithinWorldBounds(float3 cur, inout float3 next, inout float3 velocity, float dustRadius, float elasticity, Bounds bounds)
 {
     // 먼지 크기 고려하기
     bounds.min += dustRadius;

@@ -178,26 +178,22 @@ void Update (uint3 id : SV_DispatchThreadID)
         }
     }
 
-    // [2] Cube Colliders
-    float3 cubeMin = -5;
-    float3 cubeMax = 5;
+    // [2] Box Colliders
+    Bounds box0;
+    box0.min = -5;
+    box0.max = 5;
 
-    if(CheckCubeIntersection(currPos, radius, cubeMin, cubeMax))
+    if(CheckBoxIntersection(currPos, radius, box0))
     {
-        CalculateCubeCollision(currPos, nextPos, velocityBuffer[i], radius, cubeMin, cubeMax, elasticity);
+        CalculateBoxCollision(currPos, nextPos, velocityBuffer[i], radius, box0, elasticity);
     }
 
-    // [Last] 월드 영역 제한(Cube)
+    // [Last] 월드 영역 제한(Box)
     Bounds bounds;
     bounds.min = worldBoundsMin;
     bounds.max = worldBoundsMax;
-    ConfineWithinCubeBounds(currPos, nextPos, velocityBuffer[i], radius, elasticity, bounds);
+    ConfineWithinWorldBounds(currPos, nextPos, velocityBuffer[i], radius, elasticity, bounds);
 
-    //if(CheckCubeIntersection(currPos, radius, -5, 5))
-    //    dustColorBuffer[i] = float3(1, 0, 0);
-    //else
-    //    dustColorBuffer[i] = 1;
-    
     // 다음 위치 적용
     dustBuffer[i].position = nextPos;
 }
