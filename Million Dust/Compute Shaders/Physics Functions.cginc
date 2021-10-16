@@ -100,6 +100,10 @@ float3 RaycastToPlane(float3 A, float3 B, Plane plane)
 // XY평면과 평행한 평면과 레이의 접점 찾기
 float3 RaycastToPlaneXY(float3 A, float3 B, float planeZ)
 {
+    // A가 B보다 P에 더 가까이 위치한 경우
+    if((planeZ - A.z) * (planeZ - B.z) <= 0)
+        return A;
+
     float ratio = (B.z - planeZ) / (B.z - A.z);
     float3 C;
     C.xy = float2(A.xy - B.xy) * ratio + float2(B.xy);
@@ -108,6 +112,9 @@ float3 RaycastToPlaneXY(float3 A, float3 B, float planeZ)
 }
 float3 RaycastToPlaneXZ(float3 A, float3 B, float planeY)
 {
+    if((planeY - A.y) * (planeY - B.y) < 0)
+        return A;
+
     float ratio = (B.y - planeY) / (B.y - A.y);
     float3 C;
     C.xz = float2(A.xz - B.xz) * ratio + float2(B.xz);
@@ -116,17 +123,14 @@ float3 RaycastToPlaneXZ(float3 A, float3 B, float planeY)
 }
 float3 RaycastToPlaneYZ(float3 A, float3 B, float planeX)
 {
+    if((planeX - A.x) * (planeX - B.x) <= 0)
+        return A;
+
     float ratio = (B.x - planeX) / (B.x - A.x);
     float3 C;
     C.yz = float2(A.yz - B.yz) * ratio + float2(B.yz);
     C.x = planeX;
     return C;
-}
-
-bool InRange(float2 vec, float2 min, float2 max)
-{
-    return min.x <= vec.x && vec.x <= max.x &&
-           min.y <= vec.y && vec.y <= max.y;
 }
 
 // Cube(AABB) Collider에 충돌 검사하여 먼지 위치 및 속도 변경
@@ -148,36 +152,77 @@ float dustRadius, float3 cubeMin, float3 cubeMax, float elasticity)
         4. 레이와 속도 벡터에 대해 반사 벡터와 반사 속도를 구한다.
         5. 탄성력을 적용하여 다음 위치와 다음 속도를 결정한다.
     */
-    
-    float3 ray = next - cur;
-    float rayLen = length(ray);
-
-    // TODO
-    // [1] +X, +Y, +Z 방향으로 입사하는 경우, 텔레포트하는 현상 해결(반대는 정상작동함)
-    // [2] 큐브 콜라이더에 먼지가 닿은 채로 속도가 아주 작으면 
-    //     바들바들거리면서 +XYZ 방향으로 조금씩 이동하다가, -XYZ 방향으로 텔포하는 현상 해결
 
     //if(rayLen < 0.1)
     //{
     //    next = cur;
     //    velocity *= elasticity;
     //}
-
+    
     // 먼지 반지름 고려하기
     cubeMin -= dustRadius;
     cubeMax += dustRadius;
-    
-    float3 contact = 0;
-    int flag = -1; // 0 : X, 1 : Y, 2 : Z
 
+    // 내부에서 내부로 이동하는 경우, 가장 가까운 외부로 투영시키기
+    if(ExRange3(cur, cubeMin, cubeMax))
+    {
+        float3 cubeCenter = (cubeMin + cubeMax) * 0.5;
+        float3 cubeScale = cubeMax - cubeMin;
+        float3 inPos = (cur - cubeCenter) / cubeScale; // 큐브의 중심을 원점으로 하는 먼지 좌표
+        float3 absInPos = abs(inPos);
+
+        float maxElem = MaxElement(absInPos);
+        if(maxElem == absInPos.x)
+        {
+            if(inPos.x > 0)
+            {
+                next.x = max(cubeMax.x, next.x);
+            }
+            else
+            {
+                next.x = min(cubeMin.x, next.x);
+            }
+        }
+        else if(maxElem == absInPos.y)
+        {
+            if(inPos.y > 0)
+            {
+                next.y = max(cubeMax.y, next.y);
+            }
+            else
+            {
+                next.y = min(cubeMin.y, next.y);
+            }
+        }
+        else
+        {
+            if(inPos.z > 0)
+            {
+                next.z = max(cubeMax.z, next.z);
+            }
+            else
+            {
+                next.z = min(cubeMin.z, next.z);
+            }
+            //next.z = inPos.z > 0 ? cubeMax.z : cubeMin.z;
+        }
+
+        //velocity = 0;
+        return;
+    }
+    
+    float3 ray = next - cur;
+    
+    int flag = -1; // 0 : X, 1 : Y, 2 : Z
+    float3 contact = 0;
     half3 raySign = (ray >= 0);
 
-    if(flag < 0)
+    //if(flag < 0)
     {
         if(raySign.x > 0) contact = RaycastToPlaneYZ(cur, next, cubeMin.x);
         else              contact = RaycastToPlaneYZ(cur, next, cubeMax.x);
 
-        if(InRange(contact.yz, cubeMin.yz, cubeMax.yz))
+        if(InRange2(contact.yz, cubeMin.yz, cubeMax.yz))
             flag = 0;
     }
     if(flag < 0)
@@ -185,7 +230,7 @@ float dustRadius, float3 cubeMin, float3 cubeMax, float elasticity)
         if(raySign.y > 0) contact = RaycastToPlaneXZ(cur, next, cubeMin.y);
         else              contact = RaycastToPlaneXZ(cur, next, cubeMax.y);
 
-        if(InRange(contact.xz, cubeMin.xz, cubeMax.xz))
+        if(InRange2(contact.xz, cubeMin.xz, cubeMax.xz))
             flag = 1;
     }
     if(flag < 0)
@@ -193,25 +238,29 @@ float dustRadius, float3 cubeMin, float3 cubeMax, float elasticity)
         if(raySign.z > 0) contact = RaycastToPlaneXY(cur, next, cubeMin.z);
         else              contact = RaycastToPlaneXY(cur, next, cubeMax.z);
 
-        if(InRange(contact.xy, cubeMin.xy, cubeMax.xy))
+        if(InRange2(contact.xy, cubeMin.xy, cubeMax.xy))
             flag = 2;
     }
-    
     // NOTHING
     if(flag < 0)
     {
         next = cur;
         velocity *= elasticity;
+        return;
     }
     
     // 최종 계산
+    float rayLen = length(ray);
+    if(rayLen < 0.1) // 지터링 처리
+        elasticity = rayLen;
+
     float inLen = length(contact - cur);                  // 입사 벡터 길이
     float rfLen = (rayLen - inLen) * elasticity;          // 반사 벡터 길이(탄성 적용)
-
+    
     float3 rfRay = Reverse(ray, flag) * (rfLen / rayLen); // 반사 벡터
     float3 rfVel = Reverse(velocity, flag) * elasticity;  // 반사 속도 벡터(탄성 적용)
-
-    next = contact + rfLen;
+    
+    next = contact + rfRay;
     velocity = rfVel;
 }
 
@@ -219,19 +268,23 @@ float dustRadius, float3 cubeMin, float3 cubeMax, float elasticity)
 // - cur  : 현재 프레임에서의 위치
 // - next : 다음 프레임에서의 위치 [INOUT]
 // - velocity : 현재 이동 속도     [INOUT]
-// - threshold : 입자의 크기
+// - dustRadius : 먼지의 크기
 // - elasticity : 탄성력 계수(0 ~ 1)
 // - bounds : 큐브 영역
-void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocity, float threshold, float elasticity, Bounds bounds)
+void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocity, float dustRadius, float elasticity, Bounds bounds)
 {
+    // 먼지 크기 고려하기
+    bounds.min += dustRadius;
+    bounds.max -= dustRadius;
+
     // 1. 큐브 영역 밖에 있는지, 안에 있는지 검사
     int status = IN_BOUNDS;
-         if(next.x > bounds.max.x - threshold) status = PX;
-    else if(next.x < bounds.min.x + threshold) status = MX;
-    else if(next.y > bounds.max.y - threshold) status = PY;
-    else if(next.y < bounds.min.y + threshold) status = MY;
-    else if(next.z > bounds.max.z - threshold) status = PZ;
-    else if(next.z < bounds.min.z + threshold) status = MZ;
+         if(next.x > bounds.max.x) status = PX;
+    else if(next.x < bounds.min.x) status = MX;
+    else if(next.y > bounds.max.y) status = PY;
+    else if(next.y < bounds.min.y) status = MY;
+    else if(next.z > bounds.max.z) status = PZ;
+    else if(next.z < bounds.min.z) status = MZ;
     else return; // 영역 내부에 있는 경우, 종료
 
     Plane plane;
@@ -242,7 +295,7 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
     switch(status)
     {
         case PX:
-            limit = bounds.max.x - threshold;
+            limit = bounds.max.x;
             if(cur.x > limit) // 외부에서 외부로 이동하는 경우, 단순히 위치만 변경하기
             {
                 next.x = min(limit, next.x);
@@ -256,7 +309,7 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
             break;
 
         case MX:
-            limit = bounds.min.x + threshold;
+            limit = bounds.min.x;
             if(cur.x < limit)
             {
                 next.x = max(limit, next.x);
@@ -269,7 +322,7 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
             break;
 
         case PY:
-            limit = bounds.max.y - threshold;
+            limit = bounds.max.y;
             if(cur.y > limit)
             {
                 next.y = min(limit, next.y);
@@ -282,7 +335,7 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
             break;
 
         case MY:
-            limit = bounds.min.y + threshold;
+            limit = bounds.min.y;
             if(cur.y < limit)
             {
                 next.y = max(limit, next.y);
@@ -295,7 +348,7 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
             break;
 
         case PZ:
-            limit = bounds.max.z - threshold;
+            limit = bounds.max.z;
             if(cur.z > limit)
             {
                 next.z = min(limit, next.z);
@@ -308,7 +361,7 @@ void ConfineWithinCubeBounds(float3 cur, inout float3 next, inout float3 velocit
             break;
 
         case MZ:
-            limit = bounds.min.z + threshold;
+            limit = bounds.min.z;
             if(cur.z < limit)
             {
                 next.z = max(limit, next.z);
