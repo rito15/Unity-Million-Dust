@@ -20,10 +20,10 @@ Material:
     serializedVersion: 3
     m_TexEnvs: []
     m_Floats:
-    - _Ambient: 0.1
-    - _FresnelIntensity: 0.8
+    - _Ambient: 0
+    - _FresnelIntensity: 0.75
     - _FresnelPower: 0.5
-    - _Intersection: 0.8
+    - _Intersection: 0.4
     - __dirty: 0
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}

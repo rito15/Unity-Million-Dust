@@ -14,44 +14,59 @@ namespace Rito.MillionDust
     [DisallowMultipleComponent]
     public class DustSphereCollider : DustCollider
     {
-        [SerializeField] private Vector3 position = Vector3.zero;
-        [SerializeField] private float radius = 1f;
-
         private DustManager dustManager;
 
         public Vector4 SphereData => new Vector4(
-            position.x, position.y, position.z, radius
+            transform.position.x, transform.position.y, transform.position.z, transform.lossyScale.x * 0.5f
         );
-
-        private void OnValidate()
-        {
-            ValidateData();
-        }
 
         private void OnEnable()
         {
             if (dustManager == null)
                 dustManager = FindObjectOfType<DustManager>();
 
-            ValidateData();
-            dustManager.AddSphereCollider(this);
-
             if (!TryGetComponent(out SphereCollider _))
                 gameObject.AddComponent<SphereCollider>();
+
+            dustManager.AddSphereCollider(this);
+            StartCoroutine(UpdateColliderDataRoutine());
         }
 
         private void OnDisable()
         {
             dustManager.RemoveSphereCollider(this);
+            StopAllCoroutines();
         }
 
-        private void ValidateData()
+        private IEnumerator UpdateColliderDataRoutine()
         {
-            if (radius < 0.1f)
-                radius = 0.1f;
+            Vector3 prevPosition = transform.position;
+            Vector3 prevScale = transform.lossyScale;
+            Vector3 position, lossyScale, localScale;
+            WaitForSeconds wfs = new WaitForSeconds(1f);
 
-            transform.position = position;
-            transform.localScale = Vector3.one * 2f * radius;
+            while (true)
+            {
+                // 스케일 X에 XYZ를 모두 맞추기
+                localScale = transform.localScale;
+                if (localScale.x != localScale.y || localScale.x != localScale.z || localScale.y != localScale.z)
+                {
+                    transform.localScale = Vector3.one * localScale.x;
+                }
+
+                position = transform.position;
+                lossyScale = transform.lossyScale;
+
+                // 위치나 크기에 변화가 생기면 정보 업데이트
+                if (position != prevPosition || lossyScale != prevScale)
+                {
+                    dustManager.UpdateSphereCollider();
+                }
+
+                prevPosition = position;
+                prevScale = lossyScale;
+                yield return wfs;
+            }
         }
     }
 }
