@@ -213,7 +213,7 @@ namespace Rito.MillionDust
             if (worldMF == null) worldMF = worldGO.AddComponent<MeshFilter>();
             if (worldMR == null) worldMR = worldGO.AddComponent<MeshRenderer>();
 
-            worldGO.tag = DustCollider.ColliderTag;
+            worldGO.tag = DustCollider<int>.ColliderTag;
 
             CalculateWorldBounds(ref worldBounds);
 
@@ -230,7 +230,13 @@ namespace Rito.MillionDust
 
         private void InitColliders()
         {
-            sphereColliderSet = new SphereColliderSet(this.dustCompute, kernelUpdate, "sphereColliderBuffer", "sphereColliderCount");
+            sphereColliderSet = new ColliderSet<DustSphereCollider, Vector4>(
+                    this.dustCompute, 
+                    kernelUpdate, 
+                    "sphereColliderBuffer",
+                    "sphereColliderCount",
+                    sizeof(float) * 4
+            );
         }
 
         #endregion

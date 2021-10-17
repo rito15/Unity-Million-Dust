@@ -12,32 +12,35 @@ namespace Rito.MillionDust
     /// 컴퓨트 쉐이더 내에서 사용될 구체 콜라이더
     /// </summary>
     [DisallowMultipleComponent]
-    public class DustSphereCollider : DustCollider
+    public class DustSphereCollider : DustCollider<Vector4>
     {
-        private DustManager dustManager;
-
-        public Vector4 SphereData => new Vector4(
+        public override Vector4 Data => new Vector4(
             transform.position.x, transform.position.y, transform.position.z, transform.lossyScale.x * 0.5f
         );
 
-        private void OnEnable()
+        protected override void OnEnable()
         {
-            if (dustManager == null)
-                dustManager = FindObjectOfType<DustManager>();
+            base.OnEnable();
 
             if (!TryGetComponent(out SphereCollider _))
                 gameObject.AddComponent<SphereCollider>();
 
             dustManager.AddSphereCollider(this);
+
+#if UNITY_EDITOR
             StartCoroutine(UpdateColliderDataRoutine());
+#endif
         }
 
         private void OnDisable()
         {
             dustManager.RemoveSphereCollider(this);
+#if UNITY_EDITOR
             StopAllCoroutines();
+#endif
         }
 
+#if UNITY_EDITOR
         private IEnumerator UpdateColliderDataRoutine()
         {
             Vector3 prevPosition = transform.position;
@@ -68,5 +71,6 @@ namespace Rito.MillionDust
                 yield return wfs;
             }
         }
+#endif
     }
 }
