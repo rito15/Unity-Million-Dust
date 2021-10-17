@@ -127,6 +127,7 @@ namespace Rito.MillionDust
             if (dustColorBuffer != null) dustColorBuffer.Release();
             if (dustVelocityBuffer != null) dustVelocityBuffer.Release();
             if (aliveNumberBuffer != null) aliveNumberBuffer.Release();
+            if (collisionFlagBuffer != null) collisionFlagBuffer.Release();
 
             // Args Buffer
             int subMeshIndex = 0;
@@ -155,6 +156,9 @@ namespace Rito.MillionDust
             aliveNumberBuffer = new ComputeBuffer(1, sizeof(uint));
             aliveNumberArray = new uint[] { (uint)dustCount };
             aliveNumberBuffer.SetData(aliveNumberArray);
+
+            // Collision Flag Buffer
+            collisionFlagBuffer = new ComputeBuffer(dustCount, 4);
         }
 
         /// <summary> 컴퓨트 버퍼들을 쉐이더에 할당 </summary>
@@ -171,6 +175,7 @@ namespace Rito.MillionDust
             dustCompute.SetBuffer(kernelUpdate, "dustBuffer", dustBuffer);
             dustCompute.SetBuffer(kernelUpdate, "velocityBuffer", dustVelocityBuffer);
             dustCompute.SetBuffer(kernelUpdate, "aliveNumberBuffer", aliveNumberBuffer);
+            dustCompute.SetBuffer(kernelUpdate, "collisionFlagBuffer", collisionFlagBuffer);
 
             dustCompute.SetBuffer(kernelVacuumUp, "dustBuffer", dustBuffer);
             dustCompute.SetBuffer(kernelVacuumUp, "velocityBuffer", dustVelocityBuffer);
@@ -236,6 +241,13 @@ namespace Rito.MillionDust
                     "sphereColliderBuffer",
                     "sphereColliderCount",
                     sizeof(float) * 4
+            );
+            boxColliderSet = new ColliderSet<DustBoxCollider, MinMaxBounds>(
+                    this.dustCompute, 
+                    kernelUpdate, 
+                    "boxColliderBuffer",
+                    "boxColliderCount",
+                    sizeof(float) * 6
             );
         }
 

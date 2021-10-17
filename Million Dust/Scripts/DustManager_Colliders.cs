@@ -119,15 +119,17 @@ namespace Rito.MillionDust
         ***********************************************************************/
         #region .
         /// <summary> ColliderSet에 새로운 Collider 추가 </summary>
-        private void AddCollider<TCol, TData>(ColliderSet<TCol, TData> set, TCol collider) where TCol : DustCollider<TData>
+        private void AddCollider<TCol, TData>(Func<ColliderSet<TCol, TData>> getter, TCol collider) where TCol : DustCollider<TData>
         {
-            if (sphereColliderSet == null)
+            var colSet = getter();
+
+            if (colSet == null)
             {
-                afterInitJobQueue.Enqueue(() => set.AddCollider(collider));
+                afterInitJobQueue.Enqueue(() => getter().AddCollider(collider));
             }
             else
             {
-                set.AddCollider(collider);
+                colSet.AddCollider(collider);
             }
         }
 
@@ -151,17 +153,28 @@ namespace Rito.MillionDust
         #region .
         public void AddSphereCollider(DustSphereCollider collider)
         {
-            AddCollider(sphereColliderSet, collider);
+            AddCollider(() => sphereColliderSet, collider);
         }
-
         public void UpdateSphereCollider()
         {
             UpdateCollider(sphereColliderSet);
         }
-
         public void RemoveSphereCollider(DustSphereCollider collider)
         {
             RemoveCollider(sphereColliderSet, collider);
+        }
+
+        public void AddBoxCollider(DustBoxCollider collider)
+        {
+            AddCollider(() => boxColliderSet, collider);
+        }
+        public void UpdateBoxCollider()
+        {
+            UpdateCollider(boxColliderSet);
+        }
+        public void RemoveBoxCollider(DustBoxCollider collider)
+        {
+            RemoveCollider(boxColliderSet, collider);
         }
         #endregion
     }

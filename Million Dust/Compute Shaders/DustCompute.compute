@@ -37,10 +37,14 @@ RWStructuredBuffer<Dust> dustBuffer;        // 먼지 위치, 생존 여부
 RWStructuredBuffer<half3> dustColorBuffer;  // 먼지 색상 RGB
 RWStructuredBuffer<float3> velocityBuffer;  // 먼지 속도
 RWStructuredBuffer<uint> aliveNumberBuffer; // 생존한 먼지 개수
+RWStructuredBuffer<bool> collisionFlagBuffer; // 이번 프레임 충돌 처리 여부
 
 /* Colliders */
 RWStructuredBuffer<float4> sphereColliderBuffer;
 uint sphereColliderCount;
+
+RWStructuredBuffer<Bounds> boxColliderBuffer;
+uint boxColliderCount;
 
 /* Init On Load */
 uint dustCount;        // 먼지 개수
@@ -167,25 +171,31 @@ void Update (uint3 id : SV_DispatchThreadID)
     float3 currPos = dustBuffer[i].position;
     float3 nextPos = currPos + velocityBuffer[i] * deltaTime;
 
+    // 충돌 처리 완료 여부
+    collisionFlagBuffer[i] = false;
+
     // [1] Sphere Colliders
     for(uint scIndex = 0; scIndex < sphereColliderCount; scIndex++)
     {
+        if(collisionFlagBuffer[i] == true) continue;
+
         float4 sphere = sphereColliderBuffer[scIndex];
-        bool sphereCollided = CheckSphereIntersection(float4(nextPos, radius), sphere);
-        if(sphereCollided)
+        if(CheckSphereIntersection(float4(nextPos, radius), sphere))
         {
-            CalculateSphereCollision(currPos, nextPos, velocityBuffer[i], radius, sphere, elasticity);
+            CalculateSphereCollision(currPos, nextPos, velocityBuffer[i], radius, sphere, elasticity, collisionFlagBuffer[i]);
         }
     }
 
     // [2] Box Colliders
-    Bounds box0;
-    box0.min = -5;
-    box0.max = 5;
-
-    if(CheckBoxIntersection(currPos, radius, box0))
+    for(uint bcIndex = 0; bcIndex < boxColliderCount; bcIndex++)
     {
-        CalculateBoxCollision(currPos, nextPos, velocityBuffer[i], radius, box0, elasticity);
+        if(collisionFlagBuffer[i] == true) continue;
+
+        Bounds box = boxColliderBuffer[bcIndex];
+        if(CheckBoxIntersection(currPos, radius, box))
+        {
+            CalculateBoxCollision(currPos, nextPos, velocityBuffer[i], radius, box, elasticity, collisionFlagBuffer[i]);
+        }
     }
 
     // [Last] 월드 영역 제한(Box)

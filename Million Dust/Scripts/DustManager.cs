@@ -89,6 +89,7 @@ namespace Rito.MillionDust
         private ComputeBuffer argsBuffer;         // 먼지 렌더링 데이터 버퍼
         private ComputeBuffer aliveNumberBuffer;  // 생존 먼지 개수 버퍼
         private ComputeBuffer dustColorBuffer;    // 먼지 색상 버퍼
+        private ComputeBuffer collisionFlagBuffer;// 충돌 처리 완료 여부 버퍼
 
         // Private Variables
         private uint[] aliveNumberArray;
@@ -124,6 +125,7 @@ namespace Rito.MillionDust
         private Queue<Action> afterInitJobQueue = new Queue<Action>();
 
         private ColliderSet<DustSphereCollider, Vector4> sphereColliderSet;
+        private ColliderSet<DustBoxCollider, MinMaxBounds> boxColliderSet;
 
         /***********************************************************************
         *                               Unity Events
@@ -184,6 +186,7 @@ namespace Rito.MillionDust
             if (aliveNumberBuffer != null) aliveNumberBuffer.Release();
             if (dustVelocityBuffer != null) dustVelocityBuffer.Release();
             if (dustColorBuffer != null) dustColorBuffer.Release();
+            if (collisionFlagBuffer != null) collisionFlagBuffer.Release();
         }
 
         private GUIStyle boxStyle;

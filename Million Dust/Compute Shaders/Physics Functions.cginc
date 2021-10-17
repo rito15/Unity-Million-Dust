@@ -62,7 +62,7 @@ float3 SphereCastToSphere(float3 A, float3 B, float3 S, float r1, float r2)
 // - dustRadius : 먼지 반지름
 // - elasticity : 탄성력 계수(0 ~ 1) : 충돌 시 보존되는 운동량 비율
 void CalculateSphereCollision(float3 cur, inout float3 next, inout float3 velocity,
-float dustRadius, float4 sphere, float elasticity)
+float dustRadius, float4 sphere, float elasticity, inout bool handled)
 {
     // 충돌 시 먼지 위치
     float3 contactPos = SphereCastToSphere(cur, next, sphere.xyz, dustRadius, sphere.w);
@@ -85,6 +85,8 @@ float dustRadius, float4 sphere, float elasticity)
 
     // 속도 변경
     velocity = reflect(velocity, contactNormal) * elasticity;
+
+    handled = true;
 }
 
 // 점 A에서 점 B로 레이캐스트하여 평면과 접점 찾기
@@ -140,7 +142,7 @@ float3 RaycastToPlaneYZ(float3 A, float3 B, float planeX)
 // - box        : Box 영역 범위
 // - elasticity : 탄성력 계수(0 ~ 1) : 충돌 시 보존되는 운동량 비율
 void CalculateBoxCollision(float3 cur, inout float3 next, inout float3 velocity,
-float dustRadius, Bounds box, float elasticity)
+float dustRadius, Bounds box, float elasticity, inout bool handled)
 {
     /*
         [흐름]
@@ -224,6 +226,8 @@ float dustRadius, Bounds box, float elasticity)
     
     next     = contact + rfRay;
     velocity = rfVel;
+
+    handled = true;
 }
 
 // 육면체 범위 내로 위치 제한 및 충돌 검사 => 먼지 위치 및 속도 변경
