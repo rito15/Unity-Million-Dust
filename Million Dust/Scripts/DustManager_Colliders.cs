@@ -115,32 +115,53 @@ namespace Rito.MillionDust
         }
         #endregion
         /***********************************************************************
+        *                               Private Generic Methods
+        ***********************************************************************/
+        #region .
+        /// <summary> ColliderSet에 새로운 Collider 추가 </summary>
+        private void AddCollider<TCol, TData>(ColliderSet<TCol, TData> set, TCol collider) where TCol : DustCollider<TData>
+        {
+            if (sphereColliderSet == null)
+            {
+                afterInitJobQueue.Enqueue(() => set.AddCollider(collider));
+            }
+            else
+            {
+                set.AddCollider(collider);
+            }
+        }
+
+        /// <summary> ColliderSet의 내부 컴퓨트 버퍼 갱신 </summary>
+        private void UpdateCollider<TCol, TData>(ColliderSet<TCol, TData> set) where TCol : DustCollider<TData>
+        {
+            if (set != null)
+                set.UpdateBuffer();
+        }
+
+        /// <summary> ColliderSet에서 Collider 제거 </summary>
+        private void RemoveCollider<TCol, TData>(ColliderSet<TCol, TData> set, TCol collider) where TCol : DustCollider<TData>
+        {
+            if (set != null)
+                set.RemoveCollider(collider);
+        }
+        #endregion
+        /***********************************************************************
         *                               Public Methods
         ***********************************************************************/
         #region .
         public void AddSphereCollider(DustSphereCollider collider)
         {
-            if (sphereColliderSet == null)
-            {
-                afterInitJobQueue.Enqueue(() => sphereColliderSet.AddCollider(collider));
-            }
-            else
-            {
-                sphereColliderSet.AddCollider(collider);
-            }
+            AddCollider(sphereColliderSet, collider);
         }
 
         public void UpdateSphereCollider()
         {
-            if (sphereColliderSet == null) return;
-            sphereColliderSet.UpdateBuffer();
+            UpdateCollider(sphereColliderSet);
         }
 
         public void RemoveSphereCollider(DustSphereCollider collider)
         {
-            if (sphereColliderSet == null) return;
-
-            sphereColliderSet.RemoveCollider(collider);
+            RemoveCollider(sphereColliderSet, collider);
         }
         #endregion
     }
