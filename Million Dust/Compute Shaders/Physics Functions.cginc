@@ -160,11 +160,26 @@ float dustRadius, Bounds box, float elasticity, inout bool handled)
     /* 내부에서 내부로 이동하는 경우, 가장 가까운 큐브 외곽으로 투영시키기 */
     if(ExRange3(cur, boxMin, boxMax))
     {
+        // TODO : 콜라이더의 중심이 World Bounds 내부에 있고 Bounds가 겹치는 경우,
+        // 예를 들어 Y축으로 바닥에 겹쳐 있는 경우 먼지가 콜라이더 내부에 들어가서
+        // 바닥에 낑기는 현상이 있음
+        // 이를 해결하기 위해 cur가 콜라이더 내부에 있으면
+        // 콜라이더 중심으로부터 cur 방향으로 레이를 쏴서
+        // 여기에 닿는 콜라이더 외곽에 먼지를 보내버릴 예정
+        // 콜라이더 중심 좌표를 원점으로 생각하면 레이와 콜라이더 외곽의 접점을 쉽게 구할듯
+
+        //float3 boxCenter = (boxMin + boxMax) * 0.5;
+        //float3 vec = cur - boxCenter; // 중심에서 먼지를 향하는 방향
+        //if(vec == 0)
+        //    vec = float3(0, 1, 0);
+
+
+        // LEGACY //
         float3 boxCenter = (boxMin + boxMax) * 0.5;
         float3 boxScale = boxMax - boxMin;
         float3 inPos = (cur - boxCenter) / boxScale; // 큐브의 중심을 원점으로 하는 먼지 좌표
         float3 absInPos = abs(inPos);
-
+        
         float maxElem = MaxElement(absInPos);
         if(maxElem == absInPos.x)
         {
