@@ -290,7 +290,7 @@ namespace Rito.MillionDust
             dustCompute.SetVector("gravity", new Vector3(gravityX, gravityY, gravityZ));
             dustCompute.SetFloat("radius", dustRadius);
             dustCompute.SetFloat("mass", mass);
-            dustCompute.SetFloat("airResistance", airResistance);
+            dustCompute.SetFloat("drag", drag);
             dustCompute.SetFloat("elasticity", elasticity);
         }
 

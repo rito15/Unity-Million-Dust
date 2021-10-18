@@ -77,7 +77,7 @@ namespace Rito.MillionDust
         [SF] private float mass = 1f;           // 먼지 질량
 
         [Range(0f, 10f)]
-        [SF] private float airResistance = 1f;  // 공기 저항력
+        [SF] private float drag = 1f;           // (공기) 저항력
 
         [Range(0f, 1f)]
         [SF] private float elasticity = 0.6f;   // 충돌 탄성력

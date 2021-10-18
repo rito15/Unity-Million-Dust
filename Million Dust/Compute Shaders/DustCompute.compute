@@ -68,7 +68,7 @@ float3 controllerForward; // 전방 벡터
 float3 gravity;      // 중력 가속도
 float radius;        // 먼지 반지름
 float mass;          // 질량
-float airResistance; // 공기 저항력
+float drag;          // (공기) 저항력
 float elasticity;    // 탄성력
 
 /* Vacuum Cleaner */
@@ -148,20 +148,19 @@ void Update (uint3 id : SV_DispatchThreadID)
     float3 A = 0; // 가속도 합 벡터
     
     // F = m * a
-    // v = a * t
+    // dv = a * dt
 
     // ===================================================
     //                    속도 계산
     // ===================================================
-    //A += F / mass;
 
     // [1] 중력
     A += gravity;
 
     // [2] 공기 저항
-    A -= velocityBuffer[i] * airResistance;
+    A -= velocityBuffer[i] * drag;
 
-    // 속도 적용 : V = A * t
+    // 속도 적용 : dv = a * dt,   v = v0 + dv
     velocityBuffer[i] += A * deltaTime;
     
     // ===================================================
@@ -303,6 +302,7 @@ void Emit (uint3 id : SV_DispatchThreadID)
     float2 randomCircle = float2(cos(r2.x), sin(r2.x)) * r2.y * tan(emitterAngleRad);
     
     // 발사 방향 벡터 공간 변환
+    // Note - localDir.z : 기본 값 1 => Z축 볼륨을 주기 위해 연산 추가
     float3 localDir = float3(randomCircle.x, randomCircle.y, (1 + r * r2.y * TAU));
     float3 worldDir = mul(controllerMatrix, float4(localDir, 0)).xyz;
     
