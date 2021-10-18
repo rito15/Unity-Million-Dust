@@ -195,7 +195,12 @@ namespace Rito.MillionDust
             if (boxStyle == null)
             {
                 boxStyle = new GUIStyle(GUI.skin.box);
-                boxStyle.fontSize = 48;
+                boxStyle.fontSize =
+#if UNITY_EDITOR
+                48;
+#else
+                24;
+#endif
             }
 
             float scWidth = Screen.width;
@@ -214,6 +219,6 @@ namespace Rito.MillionDust
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireCube(worldBounds.center, worldBounds.size);
         }
-        #endregion
+#endregion
     }
 }
