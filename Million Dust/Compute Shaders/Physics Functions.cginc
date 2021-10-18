@@ -160,40 +160,43 @@ float dustRadius, Bounds box, float elasticity, inout bool handled)
     /* 내부에서 내부로 이동하는 경우, 가장 가까운 큐브 외곽으로 투영시키기 */
     if(ExRange3(cur, boxMin, boxMax))
     {
-        // TODO : 콜라이더의 중심이 World Bounds 내부에 있고 Bounds가 겹치는 경우,
-        // 예를 들어 Y축으로 바닥에 겹쳐 있는 경우 먼지가 콜라이더 내부에 들어가서
-        // 바닥에 낑기는 현상이 있음
-        // 이를 해결하기 위해 cur가 콜라이더 내부에 있으면
-        // 콜라이더 중심으로부터 cur 방향으로 레이를 쏴서
-        // 여기에 닿는 콜라이더 외곽에 먼지를 보내버릴 예정
-        // 콜라이더 중심 좌표를 원점으로 생각하면 레이와 콜라이더 외곽의 접점을 쉽게 구할듯
+        // [구현 이유]
+        // - 다른 콜라이더와 겹치거나, 월드 바운드와 겹치면 콜라이더 내부에서 먼지가 빠져나오지 못한다.
 
-        //float3 boxCenter = (boxMin + boxMax) * 0.5;
-        //float3 vec = cur - boxCenter; // 중심에서 먼지를 향하는 방향
-        //if(vec == 0)
-        //    vec = float3(0, 1, 0);
+        // [구현 방식]
+        // 콜라이더의 중심에서부터 현재 먼지 위치를 향하는 벡터를 구한다.
+        // 이 벡터가 콜라이더의 한 면과 맞닿도록 늘린다.
+        // 얻어낸 위치(콜라이더의 외곽)로 먼지를 이동시키고, 속도를 0으로 바꾼다.
 
-
-        // LEGACY //
-        float3 boxCenter = (boxMin + boxMax) * 0.5;
-        float3 boxScale = boxMax - boxMin;
-        float3 inPos = (cur - boxCenter) / boxScale; // 큐브의 중심을 원점으로 하는 먼지 좌표
-        float3 absInPos = abs(inPos);
+        float3 boxCenter   = (boxMin + boxMax) * 0.5;
+        float3 localBounds = (boxMax - boxMin) * 0.5;
+        float3 localPos    = cur - boxCenter; // 콜라이더 중심에서부터 현재 먼지 위치까지의 벡터
+        localPos += 0.001; // 0에 대한 예외처리
         
-        float maxElem = MaxElement(absInPos);
-        if(maxElem == absInPos.x)
+        float3 absLocalPos    = abs(localPos);
+        float3 absLocalBounds = abs(localBounds);
+        
+        // [1] X 일치
+        float3 localBorder = absLocalPos * (absLocalBounds.x / absLocalPos.x);
+        
+        if(localBorder.y > absLocalBounds.y || localBorder.z > absLocalBounds.z)
         {
-            next.x = (inPos.x > 0) ? max(boxMax.x, next.x) : min(boxMin.x, next.x);
+            // [2] Y 일치
+            localBorder = absLocalPos * (absLocalBounds.y / absLocalPos.y);
+        
+            if(localBorder.x > absLocalBounds.x || localBorder.z > absLocalBounds.z)
+            {
+                // [3] Z 일치
+                localBorder = absLocalPos * (absLocalBounds.z / absLocalPos.z);
+            }
         }
-        else if(maxElem == absInPos.y)
-        {
-            next.y = (inPos.y > 0) ? max(boxMax.y, next.y) : min(boxMin.y, next.y);
-        }
-        else
-        {
-            next.z = (inPos.z > 0) ? max(boxMax.z, next.z) : min(boxMin.z, next.z);
-        }
-
+        
+        // 부호 복원
+        localBorder *= sign(localPos);
+        
+        // 이동
+        next = boxCenter + localBorder;
+        velocity = 0;
         return;
     }
     

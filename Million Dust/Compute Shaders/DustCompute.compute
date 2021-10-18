@@ -192,7 +192,7 @@ void Update (uint3 id : SV_DispatchThreadID)
         if(collisionFlagBuffer[i] == true) continue;
 
         Bounds box = boxColliderBuffer[bcIndex];
-        if(CheckBoxIntersection(currPos, radius, box))
+        if(CheckBoxIntersection(nextPos, radius, box))
         {
             CalculateBoxCollision(currPos, nextPos, velocityBuffer[i], radius, box, elasticity, collisionFlagBuffer[i]);
         }
