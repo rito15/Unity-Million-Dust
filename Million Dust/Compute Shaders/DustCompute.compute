@@ -303,7 +303,7 @@ void Emit (uint3 id : SV_DispatchThreadID)
     float2 randomCircle = float2(cos(r2.x), sin(r2.x)) * r2.y * tan(emitterAngleRad);
     
     // 발사 방향 벡터 공간 변환
-    float3 localDir = float3(randomCircle.x, randomCircle.y, 1);
+    float3 localDir = float3(randomCircle.x, randomCircle.y, (1 + r * r2.y * TAU));
     float3 worldDir = mul(controllerMatrix, float4(localDir, 0)).xyz;
     
     float3 F = worldDir * emitterForce * emitterDist;
