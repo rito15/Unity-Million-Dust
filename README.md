@@ -1,10 +1,12 @@
 # Million Dust
 
+- Physics-based Dust Simulation
+
 - Unity Engine (2019.4.9f1)
 
 - GPU Instancing
 
-- Physics-based Dust Simulation
+- Compute Shader
 
 - <https://rito15.github.io/posts/unity-million-dust-simulation/>
 
