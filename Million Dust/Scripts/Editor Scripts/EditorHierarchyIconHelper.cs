@@ -14,7 +14,7 @@ namespace Rito.MillionDust
     /// <summary> 
     /// 
     /// </summary>
-    public class EditorHierarchyIconHelper : MonoBehaviour
+    public static class EditorHierarchyIconHelper
     {
         [UnityEditor.InitializeOnLoadMethod]
         private static void ApplyHierarchyIcon()
