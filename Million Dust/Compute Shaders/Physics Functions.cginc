@@ -67,7 +67,7 @@ float dustRadius, float4 sphere, float elasticity, inout bool handled)
     // 충돌 시 먼지 위치
     float3 contactPos = SphereCastToSphere(cur, next, sphere.xyz, dustRadius, sphere.w);
 
-    // Option : 표면 달라붙지 않고 미끄러지기
+    // Optional : 표면 달라붙지 않고 미끄러지기
     if(SqrMagnitude(cur - contactPos) < (sphere.w * sphere.w) * 1.1)
         elasticity = 1;
 
@@ -77,11 +77,11 @@ float dustRadius, float4 sphere, float elasticity, inout bool handled)
     // 충돌 지점에서 원래 다음 위치를 향한 벡터 : 잉여 벡터
     float3 extraVec = next - contactPos;
 
-    // 반사 벡터
-    float3 outVec = reflect(extraVec, contactNormal) * elasticity;
+    // 잉여 반사 벡터
+    float3 rfExtraVec = reflect(extraVec, contactNormal) * elasticity;
 
     // 다음 프레임 위치 변경
-    next = contactPos + outVec;
+    next = contactPos + rfExtraVec;
 
     // 속도 변경
     velocity = reflect(velocity, contactNormal) * elasticity;
@@ -358,9 +358,9 @@ void ConfineWithinWorldBounds(float3 cur, inout float3 next, inout float3 veloci
     // 직선과 평면의 충돌 계산
     float3 currToNext = next - cur;
     float3 contact = RaycastToPlane(cur, next, plane); // 이동 벡터와 평면의 접점
-    float rayLen   = length(currToNext);               // 이동 벡터의 길이
-    float inLen    = length(cur - contact);            // 입사 벡터 길이
-    float outLen   = (rayLen - inLen) * elasticity;    // 반사 벡터 길이(운동량 감소)
+    float  rayLen  = length(currToNext);               // 이동 벡터의 길이
+    float  inLen   = length(cur - contact);            // 입사 벡터 길이
+    float  outLen  = (rayLen - inLen) * elasticity;    // 반사 벡터 길이(운동량 감소)
     float3 outVec  = rfRay * (outLen / rayLen);
 
     // Outputs

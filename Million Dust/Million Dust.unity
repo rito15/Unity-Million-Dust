@@ -1427,7 +1427,7 @@ MonoBehaviour:
   explosionPrefab: {fileID: 3962023664168662349, guid: 071687ae9ba46e34a94abae928fe03c2,
     type: 3}
   explosionRange: 25
-  explosionForce: 3000
+  explosionForce: 5000
   shootingInterval: 1
 --- !u!1 &1936900215
 GameObject:

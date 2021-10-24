@@ -11,7 +11,7 @@ using System;
 
 namespace Rito.MillionDust
 {
-    public static class EditorHelper
+    public static class EditorTagHelper
     {
         private static bool isPlaymode = false;
 
