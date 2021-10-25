@@ -195,7 +195,7 @@ float dustRadius, Bounds box, float elasticity, inout bool handled)
         
         // 큐브 외곽으로 먼지 이동
         next = boxCenter + localBorder * 1.01; // * 1이면 World Bounds와 겹칠 경우 버그 발생
-        velocity *= 0.1;
+        //velocity *= 0.1;
         return;
     }
     

@@ -157,7 +157,7 @@ void Update (uint3 id : SV_DispatchThreadID)
     // [1] 중력
     A += gravity;
 
-    // [2] 공기 저항
+    // [2] 저항력
     A -= velocityBuffer[i] * drag;
 
     // 속도 적용 : dv = a * dt,   v = v0 + dv
