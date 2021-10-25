@@ -176,7 +176,7 @@ float dustRadius, Bounds box, float elasticity, inout bool handled)
         float3 absLocalPos    = abs(localPos);
         float3 absLocalBounds = abs(localBounds);
         
-        // [1] X 일치
+        // [1] X축 일치(YZ 평면과 교차)
         float3 localBorder = absLocalPos * (absLocalBounds.x / absLocalPos.x);
         
         if(localBorder.y > absLocalBounds.y || localBorder.z > absLocalBounds.z)
@@ -194,7 +194,7 @@ float dustRadius, Bounds box, float elasticity, inout bool handled)
         // 부호 복원
         localBorder *= sign(localPos);
         
-        // 이동
+        // 큐브 외곽으로 먼지 이동
         next = boxCenter + localBorder;
         velocity = 0;
         return;
@@ -208,24 +208,21 @@ float dustRadius, Bounds box, float elasticity, inout bool handled)
     /* 큐브 6면에 캐스트하여 충돌 지점 구하기 */
     //if(flag == FLAG_ERROR)
     {
-        if(raySign.x > 0) contact = RaycastToPlaneYZ(cur, next, boxMin.x);
-        else              contact = RaycastToPlaneYZ(cur, next, boxMax.x);
+        contact = RaycastToPlaneYZ(cur, next, (raySign.x > 0) ? boxMin.x : boxMax.x);
 
         if(InRange2(contact.yz, boxMin.yz, boxMax.yz))
             flag = FLAG_X;
     }
     if(flag == FLAG_ERROR)
     {
-        if(raySign.y > 0) contact = RaycastToPlaneXZ(cur, next, boxMin.y);
-        else              contact = RaycastToPlaneXZ(cur, next, boxMax.y);
+        contact = RaycastToPlaneXZ(cur, next, (raySign.y > 0) ? boxMin.y : boxMax.y);
 
         if(InRange2(contact.xz, boxMin.xz, boxMax.xz))
             flag = FLAG_Y;
     }
     if(flag == FLAG_ERROR)
     {
-        if(raySign.z > 0) contact = RaycastToPlaneXY(cur, next, boxMin.z);
-        else              contact = RaycastToPlaneXY(cur, next, boxMax.z);
+        contact = RaycastToPlaneXY(cur, next, (raySign.z > 0) ? boxMin.z : boxMax.z);
 
         if(InRange2(contact.xy, boxMin.xy, boxMax.xy))
             flag = FLAG_Z;

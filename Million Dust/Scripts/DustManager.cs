@@ -73,7 +73,7 @@ namespace Rito.MillionDust
         [SF] private float gravityZ = 0;
 
         [Space]
-        [Range(0f, 20f)]
+        [Range(0.01f, 20f)]
         [SF] private float mass = 1f;           // 먼지 질량
 
         [Range(0f, 10f)]
