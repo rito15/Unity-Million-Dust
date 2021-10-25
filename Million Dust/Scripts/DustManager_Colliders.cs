@@ -70,8 +70,19 @@ namespace Rito.MillionDust
                 this.dataArray = newArray;
             }
 
-            /// <summary> Collider 리스트로부터 Vector4 배열에 데이터 전달 </summary>
-            private void UpdateDataArray()
+            /// <summary> 컴퓨트 버퍼의 데이터를 새롭게 갱신하고 컴퓨트 쉐이더에 전달 </summary>
+            private void ReallocateBuffer()
+            {
+                ReleaseBuffer();
+                if (dataCount == 0) return;
+
+                colliderBuffer = new ComputeBuffer(dataCount, dataStride);
+                computeShader.SetInt(countVariableName, dataCount);
+                UpdateColliderData();
+            }
+
+            /// <summary> 배열 내부의 콜라이더 데이터만 갱신하여 컴퓨트 쉐이더에 전달 </summary>
+            public void UpdateColliderData()
             {
                 if (dataArray.Length < dataCount)
                     ExpandDataArray();
@@ -80,19 +91,9 @@ namespace Rito.MillionDust
                 {
                     dataArray[i] = colliders[i].Data;
                 }
-            }
 
-            /// <summary> 컴퓨트 버퍼의 데이터를 새롭게 갱신하고 컴퓨트 쉐이더에 전달 </summary>
-            public void UpdateBuffer()
-            {
-                ReleaseBuffer();
-                if (dataCount == 0) return;
-
-                UpdateDataArray();
-                colliderBuffer = new ComputeBuffer(dataCount, dataStride);
                 colliderBuffer.SetData(dataArray, 0, 0, dataCount);
                 computeShader.SetBuffer(shaderKernel, bufferName, colliderBuffer);
-                computeShader.SetInt(countVariableName, dataCount);
             }
 
             public void AddCollider(TCol collider)
@@ -101,7 +102,7 @@ namespace Rito.MillionDust
 
                 dataCount++;
                 colliders.Add(collider);
-                UpdateBuffer();
+                ReallocateBuffer();
             }
 
             public void RemoveCollider(TCol collider)
@@ -110,7 +111,7 @@ namespace Rito.MillionDust
 
                 dataCount--;
                 colliders.Remove(collider);
-                UpdateBuffer();
+                ReallocateBuffer();
             }
         }
         #endregion
@@ -137,7 +138,7 @@ namespace Rito.MillionDust
         private void UpdateCollider<TCol, TData>(ColliderSet<TCol, TData> set) where TCol : DustCollider<TData>
         {
             if (set != null)
-                set.UpdateBuffer();
+                set.UpdateColliderData();
         }
 
         /// <summary> ColliderSet에서 Collider 제거 </summary>

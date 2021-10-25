@@ -13,7 +13,7 @@
 
 // 구체끼리의 충돌 여부 검사
 // xyz : Position
-// w : Radius
+// w   : Radius
 bool CheckSphereIntersection(float4 sphereA, float4 sphereB)
 {
     return SqrMagnitude(sphereA.rgb - sphereB.rgb) < Square(sphereA.w + sphereB.w);
@@ -94,8 +94,6 @@ float3 RaycastToPlane(float3 A, float3 B, Plane plane)
 {
     //A = Ray Origin;
     //B = Ray End;
-    //P = Plane Point;
-    //N = Plane Normal;
     float3 AB = (B - A);
     float3 nAB = normalize(AB);
     
@@ -176,9 +174,10 @@ float dustRadius, Bounds box, float elasticity, inout bool handled)
         float3 absLocalPos    = abs(localPos);
         float3 absLocalBounds = abs(localBounds);
         
-        // [1] X축 일치(YZ 평면과 교차)
+        // [1] X 좌표 일치
         float3 localBorder = absLocalPos * (absLocalBounds.x / absLocalPos.x);
-        
+
+        // center-border 선분이 YZ 평면과 만나는지 확인
         if(localBorder.y > absLocalBounds.y || localBorder.z > absLocalBounds.z)
         {
             // [2] Y 일치
@@ -195,8 +194,8 @@ float dustRadius, Bounds box, float elasticity, inout bool handled)
         localBorder *= sign(localPos);
         
         // 큐브 외곽으로 먼지 이동
-        next = boxCenter + localBorder;
-        velocity = 0;
+        next = boxCenter + localBorder * 1.01; // * 1이면 World Bounds와 겹칠 경우 버그 발생
+        velocity *= 0.1;
         return;
     }
     
@@ -208,25 +207,49 @@ float dustRadius, Bounds box, float elasticity, inout bool handled)
     /* 큐브 6면에 캐스트하여 충돌 지점 구하기 */
     //if(flag == FLAG_ERROR)
     {
-        contact = RaycastToPlaneYZ(cur, next, (raySign.x > 0) ? boxMin.x : boxMax.x);
+        if(raySign.x > 0) contact = RaycastToPlaneYZ(cur, next, boxMin.x);
+        else              contact = RaycastToPlaneYZ(cur, next, boxMax.x);
 
         if(InRange2(contact.yz, boxMin.yz, boxMax.yz))
             flag = FLAG_X;
     }
     if(flag == FLAG_ERROR)
     {
-        contact = RaycastToPlaneXZ(cur, next, (raySign.y > 0) ? boxMin.y : boxMax.y);
+        if(raySign.y > 0) contact = RaycastToPlaneXZ(cur, next, boxMin.y);
+        else              contact = RaycastToPlaneXZ(cur, next, boxMax.y);
 
         if(InRange2(contact.xz, boxMin.xz, boxMax.xz))
             flag = FLAG_Y;
     }
     if(flag == FLAG_ERROR)
     {
-        contact = RaycastToPlaneXY(cur, next, (raySign.z > 0) ? boxMin.z : boxMax.z);
+        if(raySign.z > 0) contact = RaycastToPlaneXY(cur, next, boxMin.z);
+        else              contact = RaycastToPlaneXY(cur, next, boxMax.z);
 
         if(InRange2(contact.xy, boxMin.xy, boxMax.xy))
             flag = FLAG_Z;
     }
+
+    //{
+    //    contact = RaycastToPlaneYZ(cur, next, (raySign.x > 0) ? boxMin.x : boxMax.x);
+    //
+    //    if(InRange2(contact.yz, boxMin.yz, boxMax.yz))
+    //        flag = FLAG_X;
+    //}
+    //if(flag == FLAG_ERROR)
+    //{
+    //    contact = RaycastToPlaneXZ(cur, next, (raySign.y > 0) ? boxMin.y : boxMax.y);
+    //
+    //    if(InRange2(contact.xz, boxMin.xz, boxMax.xz))
+    //        flag = FLAG_Y;
+    //}
+    //if(flag == FLAG_ERROR)
+    //{
+    //    contact = RaycastToPlaneXY(cur, next, (raySign.z > 0) ? boxMin.z : boxMax.z);
+    //
+    //    if(InRange2(contact.xy, boxMin.xy, boxMax.xy))
+    //        flag = FLAG_Z;
+    //}
     
     /* 최종 계산 */
     float rayLen = length(ray);
@@ -259,20 +282,20 @@ void ConfineWithinWorldBounds(float3 cur, inout float3 next, inout float3 veloci
     bounds.max -= dustRadius;
 
     // 1. 큐브 영역 밖에 있는지, 안에 있는지 검사
-    int status = IN_BOUNDS;
-         if(next.x > bounds.max.x) status = PX;
-    else if(next.x < bounds.min.x) status = MX;
-    else if(next.y > bounds.max.y) status = PY;
-    else if(next.y < bounds.min.y) status = MY;
-    else if(next.z > bounds.max.z) status = PZ;
-    else if(next.z < bounds.min.z) status = MZ;
+    int state = IN_BOUNDS;
+         if(next.x > bounds.max.x) state = PX;
+    else if(next.x < bounds.min.x) state = MX;
+    else if(next.y > bounds.max.y) state = PY;
+    else if(next.y < bounds.min.y) state = MY;
+    else if(next.z > bounds.max.z) state = PZ;
+    else if(next.z < bounds.min.z) state = MZ;
     else return; // 영역 내부에 있는 경우, 종료
 
-    Plane plane;
-    float limit;
+    Plane plane = { float3(0, 0, 0), float3(0, 0, 0) };
+    float limit = 0;
     int flag = FLAG_ERROR;
 
-    switch(status)
+    switch(state)
     {
         case PX:
             limit = bounds.max.x;
