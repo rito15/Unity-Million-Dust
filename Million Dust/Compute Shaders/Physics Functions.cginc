@@ -14,22 +14,30 @@
 // 구체끼리의 충돌 여부 검사
 // xyz : Position
 // w   : Radius
-bool CheckSphereIntersection(float4 sphereA, float4 sphereB)
+bool SphereToSphereIntersection(float4 sphereA, float4 sphereB)
 {
     return SqrMagnitude(sphereA.rgb - sphereB.rgb) < Square(sphereA.w + sphereB.w);
 }
 
 // 구체와 육면체(AABB)의 충돌 여부 검사
 // AABB : Axis Aligned Bounding Box
-bool CheckBoxIntersection(float3 position, float radius, Bounds box)
+// S : 구체의 위치
+// r : 구체의 반지름
+bool SphereToAABBIntersection(float3 S, float r, Bounds aabb)
 {
-    if(position.x + radius < box.min.x) return false;
-    if(position.y + radius < box.min.y) return false;
-    if(position.z + radius < box.min.z) return false;
-    if(position.x - radius > box.max.x) return false;
-    if(position.y - radius > box.max.y) return false;
-    if(position.z - radius > box.max.z) return false;
-    return true;
+    // Future Works : 최적화
+
+    // [1] AABB까지의 최단지점 계산
+    float3 C = S;
+    if      (C.x < aabb.min.x) C.x = aabb.min.x;
+    else if (C.x > aabb.max.x) C.x = aabb.max.x;
+    if      (C.y < aabb.min.y) C.y = aabb.min.y;
+    else if (C.y > aabb.max.y) C.y = aabb.max.y;
+    if      (C.z < aabb.min.z) C.z = aabb.min.z;
+    else if (C.z > aabb.max.z) C.z = aabb.max.z;
+
+    // [2] 거리 비교
+    return SqrMagnitude(C - S) <= r * r;
 }
 
 // A -> B 위치로 Sphere Cast
