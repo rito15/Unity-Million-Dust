@@ -19,6 +19,9 @@ namespace Rito.MillionDust
         [UnityEditor.InitializeOnLoadMethod]
         private static void ApplyHierarchyIcon()
         {
+            if (GameObject.FindObjectOfType<DustManager>() == null)
+                return;
+
             if (iconData == null || iconData.Length == 0)
                 InitIconData();
 
