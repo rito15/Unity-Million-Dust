@@ -69,7 +69,7 @@ float3 SphereCastToSphere(float3 A, float3 B, float3 S, float r1, float r2)
 // - sphere : 구체 중심 위치(xyz), 구체 반지름(w)
 // - dustRadius : 먼지 반지름
 // - elasticity : 탄성력 계수(0 ~ 1) : 충돌 시 보존되는 운동량 비율
-void CalculateSphereCollision(float3 cur, inout float3 next, inout float3 velocity,
+void DustToSphereCollision(float3 cur, inout float3 next, inout float3 velocity,
 float dustRadius, float4 sphere, float elasticity, inout bool handled)
 {
     // 충돌 시 먼지 위치
@@ -147,7 +147,7 @@ float3 RaycastToPlaneYZ(float3 A, float3 B, float planeX)
 // - dustRadius : 먼지 반지름
 // - box        : Box 영역 범위
 // - elasticity : 탄성력 계수(0 ~ 1) : 충돌 시 보존되는 운동량 비율
-void CalculateBoxCollision(float3 cur, inout float3 next, inout float3 velocity,
+void DustToAABBCollision(float3 cur, inout float3 next, inout float3 velocity,
 float dustRadius, Bounds box, float elasticity, inout bool handled)
 {
     /*
@@ -237,39 +237,16 @@ float dustRadius, Bounds box, float elasticity, inout bool handled)
         if(InRange2(contact.xy, boxMin.xy, boxMax.xy))
             flag = FLAG_Z;
     }
-
-    //{
-    //    contact = RaycastToPlaneYZ(cur, next, (raySign.x > 0) ? boxMin.x : boxMax.x);
-    //
-    //    if(InRange2(contact.yz, boxMin.yz, boxMax.yz))
-    //        flag = FLAG_X;
-    //}
-    //if(flag == FLAG_ERROR)
-    //{
-    //    contact = RaycastToPlaneXZ(cur, next, (raySign.y > 0) ? boxMin.y : boxMax.y);
-    //
-    //    if(InRange2(contact.xz, boxMin.xz, boxMax.xz))
-    //        flag = FLAG_Y;
-    //}
-    //if(flag == FLAG_ERROR)
-    //{
-    //    contact = RaycastToPlaneXY(cur, next, (raySign.z > 0) ? boxMin.z : boxMax.z);
-    //
-    //    if(InRange2(contact.xy, boxMin.xy, boxMax.xy))
-    //        flag = FLAG_Z;
-    //}
     
     /* 최종 계산 */
     float rayLen = length(ray);
-    if(rayLen < 0.05) // 지터링 처리
-        elasticity = rayLen;
-
-    float inLen = length(contact - cur);                  // 입사 벡터 길이
-    float rfLen = (rayLen - inLen) * elasticity;          // 반사 벡터 길이(탄성 적용)
+    float inLen  = length(contact - cur);                 // 입사 벡터 길이
+    float rfLen  = (rayLen - inLen) * elasticity;         // 반사 벡터 길이(탄성 적용)
     
     float3 rfRay = Reverse(ray, flag) * (rfLen / rayLen); // 반사 벡터
     float3 rfVel = Reverse(velocity, flag) * elasticity;  // 반사 속도 벡터(탄성 적용)
     
+    /* 변경사항 적용 */
     next     = contact + rfRay;
     velocity = rfVel;
 

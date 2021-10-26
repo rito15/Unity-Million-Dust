@@ -181,7 +181,7 @@ void Update (uint3 id : SV_DispatchThreadID)
         float4 sphere = sphereColliderBuffer[scIndex];
         if(SphereToSphereIntersection(float4(nextPos, radius), sphere))
         {
-            CalculateSphereCollision(currPos, nextPos, velocityBuffer[i], radius, sphere, elasticity, collisionFlagBuffer[i]);
+            DustToSphereCollision(currPos, nextPos, velocityBuffer[i], radius, sphere, elasticity, collisionFlagBuffer[i]);
         }
     }
 
@@ -193,7 +193,7 @@ void Update (uint3 id : SV_DispatchThreadID)
         Bounds box = boxColliderBuffer[bcIndex];
         if(SphereToAABBIntersection(nextPos, radius, box))
         {
-            CalculateBoxCollision(currPos, nextPos, velocityBuffer[i], radius, box, elasticity, collisionFlagBuffer[i]);
+            DustToAABBCollision(currPos, nextPos, velocityBuffer[i], radius, box, elasticity, collisionFlagBuffer[i]);
         }
     }
 
