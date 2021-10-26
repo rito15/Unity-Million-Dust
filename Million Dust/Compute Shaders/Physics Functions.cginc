@@ -163,16 +163,13 @@ float dustRadius, Bounds box, float elasticity, inout bool handled)
     float3 boxMin = box.min - dustRadius;
     float3 boxMax = box.max + dustRadius;
 
-    /* 내부에서 내부로 이동하는 경우, 가장 가까운 큐브 외곽으로 투영시키기 */
+    // 내부에서 내부로 이동하는 경우, 가장 가까운 큐브 외곽으로 투영시키기
     if(ExRange3(cur, boxMin, boxMax))
     {
-        // [구현 이유]
-        // - 다른 콜라이더와 겹치거나, 월드 바운드와 겹치면 콜라이더 내부에서 먼지가 빠져나오지 못한다.
-
         // [구현 방식]
         // 콜라이더의 중심에서부터 현재 먼지 위치를 향하는 벡터를 구한다.
         // 이 벡터가 콜라이더의 한 면과 맞닿도록 늘린다.
-        // 얻어낸 위치(콜라이더의 외곽)로 먼지를 이동시키고, 속도를 0으로 바꾼다.
+        // 얻어낸 위치(콜라이더의 외곽)로 먼지를 이동시킨다.
 
         float3 boxCenter   = (boxMin + boxMax) * 0.5;
         float3 localBounds = (boxMax - boxMin) * 0.5;
@@ -206,7 +203,9 @@ float dustRadius, Bounds box, float elasticity, inout bool handled)
         //velocity *= 0.1;
         return;
     }
+    //======================================================= */
     
+    /* 지역변수 */
     float3 ray     = next - cur;
     float3 contact = 0;
     half3  raySign = (ray >= 0);

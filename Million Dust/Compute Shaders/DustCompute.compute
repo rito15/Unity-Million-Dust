@@ -170,7 +170,7 @@ void Update (uint3 id : SV_DispatchThreadID)
     float3 currPos = dustBuffer[i].position;
     float3 nextPos = currPos + velocityBuffer[i] * deltaTime;
 
-    // 충돌 처리 완료 여부
+    // 이번 프레임 충돌 처리 완료 여부 초기화
     collisionFlagBuffer[i] = false;
 
     // [1] Sphere Colliders
