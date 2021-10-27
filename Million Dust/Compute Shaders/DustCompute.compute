@@ -30,7 +30,7 @@
 #define TAU 6.28318530
 
 // 순간적 충격에 의한 속도 계산 시 사용 - 타임스케일 변경에도 일관적 동작 유지
-#define INSTANT_DELTA_TIME 0.02
+#define CONSTANT_DELTA_TIME 0.02
 
 /*******************************************************************
 /*                            Variables
@@ -311,7 +311,7 @@ void Emit (uint3 id : SV_DispatchThreadID)
     
     float3 F = worldDir * emitterForce * emitterDist;
     float3 A = F / mass;
-    float3 V = A * INSTANT_DELTA_TIME;
+    float3 V = A * CONSTANT_DELTA_TIME;
 
     dustBuffer[i].position = controllerPos;
     velocityBuffer[i] = V;
@@ -346,7 +346,7 @@ void BlowWind (uint3 id : SV_DispatchThreadID)
 
             float3 F = headToDustDir * force * dotValue;
             float3 A = F / mass;
-            velocityBuffer[i] += A * INSTANT_DELTA_TIME;
+            velocityBuffer[i] += A * CONSTANT_DELTA_TIME;
         }
     }
 }
@@ -372,6 +372,6 @@ void Explode (uint3 id : SV_DispatchThreadID)
 
         float3 F = dir * f;
         float3 A = F / mass;
-        velocityBuffer[i] += A * INSTANT_DELTA_TIME;
+        velocityBuffer[i] += A * CONSTANT_DELTA_TIME;
     }
 }
