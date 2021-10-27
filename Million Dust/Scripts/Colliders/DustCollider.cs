@@ -25,6 +25,47 @@ namespace Rito.MillionDust
         {
             if (dustManager == null)
                 dustManager = FindObjectOfType<DustManager>();
+#if UNITY_EDITOR
+            StartCoroutine(UpdateColliderDataRoutine());
+#endif
         }
+
+        protected virtual void OnDisable()
+        {
+#if UNITY_EDITOR
+            StopAllCoroutines();
+#endif
+        }
+
+#if UNITY_EDITOR
+        private IEnumerator UpdateColliderDataRoutine()
+        {
+            yield return new WaitForEndOfFrame();
+
+            Vector3 prevPosition = transform.position;
+            Vector3 prevScale = transform.lossyScale;
+            Vector3 prevAngles = transform.eulerAngles;
+            Vector3 position, eulerAngles, lossyScale;
+            WaitForSeconds wfs = new WaitForSeconds(0.2f);
+
+            while (true)
+            {
+                position = transform.position;
+                eulerAngles = transform.eulerAngles;
+                lossyScale = transform.lossyScale;
+
+                // 위치나 크기에 변화가 생기면 정보 업데이트
+                if (position != prevPosition || lossyScale != prevScale || eulerAngles != prevAngles)
+                {
+                    dustManager.UpdateBoxCollider();
+                }
+
+                prevPosition = position;
+                prevAngles = eulerAngles;
+                prevScale = lossyScale;
+                yield return wfs;
+            }
+        }
+#endif
     }
 }
