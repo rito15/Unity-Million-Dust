@@ -84,10 +84,17 @@
 
 <br>
 
-## 상자 충돌체(Box Collider)와의 충돌
+## 상자 충돌체(Box Collider)와의 충돌 - AABB
 <img src="https://user-images.githubusercontent.com/42164422/137745035-c2215004-70f1-478d-9803-8a2b2a04e49b.gif" width=600/>
 
 <img src="https://user-images.githubusercontent.com/42164422/137745044-76d7ecd2-b638-4638-a082-add35227fc8f.gif" width=600/>
+
+<br>
+
+## 상자 충돌체(Box Collider)와의 충돌 - OBB
+<img src="https://user-images.githubusercontent.com/42164422/139091928-14413bff-5cf7-4444-a6f4-2ebc87a4439e.gif" width=600/>
+
+<img src="https://user-images.githubusercontent.com/42164422/139091940-563896ee-d41f-4da5-9d5a-8a2be8efd68b.gif" width=600/>
 
 <br>
 
