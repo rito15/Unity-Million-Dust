@@ -2024,6 +2024,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 64442c8b355ce0b42ad92d7b3c802e81, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  dustCompute: {fileID: 7200000, guid: a725fe981ed6cbf45a47ee3e356c76dc, type: 3}
   dustMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
   dustMaterial: {fileID: 2100000, guid: 580e99519544d7049bc9d6a36bb4e96b, type: 2}
   dustCount: 1000000
@@ -2047,7 +2048,7 @@ MonoBehaviour:
   mass: 1
   drag: 1
   elasticity: 0.6
-  dustCompute: {fileID: 7200000, guid: a725fe981ed6cbf45a47ee3e356c76dc, type: 3}
+  timescale: 1
 --- !u!4 &1936900217
 Transform:
   m_ObjectHideFlags: 0

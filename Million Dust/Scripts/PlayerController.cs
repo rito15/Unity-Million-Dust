@@ -32,7 +32,7 @@ namespace Rito.MillionDust
 
         private void Update()
         {
-            deltaTime = Time.deltaTime;
+            deltaTime = Time.unscaledDeltaTime;
 
             if (mouseLocked)
             {

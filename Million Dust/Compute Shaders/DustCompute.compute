@@ -24,10 +24,13 @@
 /*******************************************************************
 /*                            Definitions
 /*******************************************************************/
+#define NUM_THREADS_HEADER numthreads(64,1,1)
 #define TRUE 1
 #define FALSE 0
 #define TAU 6.28318530
-#define NUM_THREADS_HEADER numthreads(64,1,1)
+
+// 순간적 충격에 의한 속도 계산 시 사용 - 타임스케일 변경에도 일관적 동작 유지
+#define INSTANT_DELTA_TIME 0.02
 
 /*******************************************************************
 /*                            Variables
@@ -54,7 +57,7 @@ float3 spawnBoundsMin; // 먼지 생성 영역 - 최소 지점
 float3 spawnBoundsMax; // 먼지 생성 영역 - 최대 지점
 float3 worldBoundsMin; // 월드 제한 영역 - 최소 지점
 float3 worldBoundsMax; // 월드 제한 영역 - 최대 지점
-float deltaTime;
+float deltaTime;       // delta t
 
 /* Populate */
 half3 dustColorA; // 무작위 색상 A
@@ -308,7 +311,7 @@ void Emit (uint3 id : SV_DispatchThreadID)
     
     float3 F = worldDir * emitterForce * emitterDist;
     float3 A = F / mass;
-    float3 V = A * deltaTime;
+    float3 V = A * INSTANT_DELTA_TIME;
 
     dustBuffer[i].position = controllerPos;
     velocityBuffer[i] = V;
@@ -343,7 +346,7 @@ void BlowWind (uint3 id : SV_DispatchThreadID)
 
             float3 F = headToDustDir * force * dotValue;
             float3 A = F / mass;
-            velocityBuffer[i] += A * deltaTime;
+            velocityBuffer[i] += A * INSTANT_DELTA_TIME;
         }
     }
 }
@@ -369,6 +372,6 @@ void Explode (uint3 id : SV_DispatchThreadID)
 
         float3 F = dir * f;
         float3 A = F / mass;
-        velocityBuffer[i] += A * deltaTime;
+        velocityBuffer[i] += A * INSTANT_DELTA_TIME;
     }
 }

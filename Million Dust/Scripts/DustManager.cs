@@ -30,6 +30,9 @@ namespace Rito.MillionDust
             public int isAlive;
         }
 
+        [Header("Compute Shader")]
+        [SF] private ComputeShader dustCompute;
+
         [Header("Dust")]
         [SF] private Mesh dustMesh;
         [SF] private Material dustMaterial;
@@ -82,8 +85,10 @@ namespace Rito.MillionDust
         [Range(0f, 1f)]
         [SF] private float elasticity = 0.6f;   // 충돌 탄성력
 
-        [Header("Compute Shader")]
-        [SF] private ComputeShader dustCompute;
+        [Header("Game")]
+        [Range(0, 1f)]
+        [SF] private float timescale = 1f;
+
         private ComputeBuffer dustBuffer;         // 먼지 데이터 버퍼(위치, ...)
         private ComputeBuffer dustVelocityBuffer; // 먼지 현재 속도 버퍼
         private ComputeBuffer argsBuffer;         // 먼지 렌더링 데이터 버퍼
@@ -166,6 +171,7 @@ namespace Rito.MillionDust
 
         private void Update()
         {
+            Time.timeScale = timescale;
             deltaTime = Time.deltaTime;
 
             HandlePlayerInputs();
