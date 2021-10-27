@@ -53,7 +53,7 @@ namespace Rito.MillionDust
 
         private void OnTriggerEnter(Collider other)
         {
-            if (other.CompareTag(DustCollider<int>.ColliderTag) == false) return;
+            if (other.CompareTag(DustCollider.ColliderTag) == false) return;
 
             // 1. Explode 커널 실행
             DustManager.Instance.Explode(transform.position, explosionSqrRange, explosionForce);

@@ -11,12 +11,10 @@ namespace Rito.MillionDust
     /// <summary> 
     /// 먼지 월드와 동기화되는 충돌체
     /// </summary>
-    public abstract class DustCollider<T> : MonoBehaviour
+    public abstract class DustCollider : MonoBehaviour
     {
         public const string ColliderTag = "DustCollider";
         protected DustManager dustManager;
-
-        public abstract T Data { get; }
 
         protected void Awake()
         {

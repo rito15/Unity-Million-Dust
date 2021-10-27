@@ -129,8 +129,8 @@ namespace Rito.MillionDust
         // 게임 시작 시 초기화 작업 완료 후 처리
         private Queue<Action> afterInitJobQueue = new Queue<Action>();
 
-        private ColliderSet<DustSphereCollider, Vector4> sphereColliderSet;
-        private ColliderSet<DustBoxCollider, MinMaxBounds> boxColliderSet;
+        private ColliderSet sphereColliderSet;
+        private ColliderSet boxColliderSet;
 
         /***********************************************************************
         *                               Unity Events

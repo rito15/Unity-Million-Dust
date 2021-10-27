@@ -12,12 +12,8 @@ namespace Rito.MillionDust
     /// 컴퓨트 쉐이더 내에서 사용될 구체 콜라이더
     /// </summary>
     [DisallowMultipleComponent]
-    public class DustSphereCollider : DustCollider<Vector4>
+    public class DustSphereCollider : DustCollider
     {
-        public override Vector4 Data => new Vector4(
-            transform.position.x, transform.position.y, transform.position.z, transform.lossyScale.x * 0.5f
-        );
-
         protected override void OnEnable()
         {
             base.OnEnable();

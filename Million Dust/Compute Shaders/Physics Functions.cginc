@@ -40,6 +40,18 @@ bool SphereToAABBIntersection(float3 S, float r, Bounds aabb)
     return SqrMagnitude(C - S) <= r * r;
 }
 
+// AABB로 근사시킨 먼지를 기본 AABB(-0.5 ~ 0.5)와 교차 검사
+bool DustToDefaultAABBIntersection(float3 pos, float3 scale)
+{
+    if (pos.x + scale.x < -0.5) return false;
+    if (pos.y + scale.y < -0.5) return false;
+    if (pos.z + scale.z < -0.5) return false;
+    if (pos.x - scale.x >  0.5) return false;
+    if (pos.y - scale.y >  0.5) return false;
+    if (pos.z - scale.z >  0.5) return false;
+    return true;
+}
+
 // A -> B 위치로 Sphere Cast
 // S : Target Sphere Position
 // r1 : Radius of Casted Sphere
@@ -148,7 +160,7 @@ float3 RaycastToPlaneYZ(float3 A, float3 B, float planeX)
 // - box        : Box 영역 범위
 // - elasticity : 탄성력 계수(0 ~ 1) : 충돌 시 보존되는 운동량 비율
 void DustToAABBCollision(float3 cur, inout float3 next, inout float3 velocity,
-float dustRadius, Bounds box, float elasticity, inout bool handled)
+float3 dustRadius, Bounds box, float elasticity, inout bool handled)
 {
     /*
         [흐름]

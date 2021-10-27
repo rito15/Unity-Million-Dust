@@ -8,19 +8,8 @@ using System;
 
 namespace Rito.MillionDust
 {
-    public class DustBoxCollider : DustCollider<MinMaxBounds>
+    public class DustBoxCollider : DustCollider
     {
-        public override MinMaxBounds Data
-        {
-            get
-            {
-                Bounds b = default;
-                b.center = transform.position;
-                b.extents = transform.lossyScale * 0.5f;
-                return MinMaxBounds.FromBounds(b);
-            }
-        }
-
         protected override void OnEnable()
         {
             base.OnEnable();

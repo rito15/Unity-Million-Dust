@@ -26,7 +26,7 @@ namespace Rito.MillionDust
         {
             if (isPlaymode) return; 
 
-            AddNewTag(DustCollider<int>.ColliderTag);
+            AddNewTag(DustCollider.ColliderTag);
         }
 
         /// <summary> 태그 중복 확인 및 추가 </summary>

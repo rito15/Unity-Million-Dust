@@ -32,6 +32,8 @@
 // 순간적 충격에 의한 속도 계산 시 사용 - 타임스케일 변경에도 일관적 동작 유지
 #define CONSTANT_DELTA_TIME 0.02
 
+#define DEFAULT_BOX_COLLIDER { float3(-0.5, -0.5, -0.5), float3(0.5, 0.5, 0.5) }
+
 /*******************************************************************
 /*                            Variables
 /*******************************************************************/
@@ -43,10 +45,10 @@ RWStructuredBuffer<uint> aliveNumberBuffer; // 생존한 먼지 개수
 RWStructuredBuffer<bool> collisionFlagBuffer; // 이번 프레임 충돌 처리 여부
 
 /* Colliders */
-RWStructuredBuffer<float4> sphereColliderBuffer;
+RWStructuredBuffer<ColliderTransform> sphereColliderBuffer;
 uint sphereColliderCount;
 
-RWStructuredBuffer<Bounds> boxColliderBuffer;
+RWStructuredBuffer<ColliderTransform> boxColliderBuffer;
 uint boxColliderCount;
 
 /* Init On Load */
@@ -181,22 +183,41 @@ void Update (uint3 id : SV_DispatchThreadID)
     {
         if(collisionFlagBuffer[i] == true) continue;
 
-        float4 sphere = sphereColliderBuffer[scIndex];
+        float4 sphere;
+        sphere.xyz = mul(sphereColliderBuffer[scIndex].localToWorld, float4(0, 0, 0, 1)).xyz;
+        sphere.w = sphereColliderBuffer[scIndex].scale.x * 0.5;
+
         if(SphereToSphereIntersection(float4(nextPos, radius), sphere))
         {
             DustToSphereCollision(currPos, nextPos, velocityBuffer[i], radius, sphere, elasticity, collisionFlagBuffer[i]);
         }
     }
 
-    // [2] Box Colliders
+    // [2] Box Colliders(OBB)
     for(uint bcIndex = 0; bcIndex < boxColliderCount; bcIndex++)
     {
         if(collisionFlagBuffer[i] == true) continue;
+    
+        Bounds box = DEFAULT_BOX_COLLIDER;
+        float4x4 WtL = boxColliderBuffer[bcIndex].worldToLocal;
+        
+        float3 localNextPos    = mul(WtL, float4(nextPos, 1)).xyz;
 
-        Bounds box = boxColliderBuffer[bcIndex];
-        if(SphereToAABBIntersection(nextPos, radius, box))
+        // 박스 로컬 스페이스에서의 먼지 스케일 계산
+        float3 localDustRadius = radius.xxx / boxColliderBuffer[bcIndex].scale;
+        
+        // 박스 콜라이더의 로컬 스페이스에서 먼지 교차 검사(AABB-AABB)
+        if(DustToDefaultAABBIntersection(localNextPos, localDustRadius))
         {
-            DustToAABBCollision(currPos, nextPos, velocityBuffer[i], radius, box, elasticity, collisionFlagBuffer[i]);
+            float3 localCurrPos  = mul(WtL, float4(currPos,           1)).xyz;
+            float3 localVelocity = mul(WtL, float4(velocityBuffer[i], 0)).xyz;
+
+            // 박스 콜라이더의 로컬 스페이스에서 충돌 처리
+            DustToAABBCollision(localCurrPos, localNextPos, localVelocity, localDustRadius, box, elasticity, collisionFlagBuffer[i]);
+            
+            float4x4 LtW = boxColliderBuffer[bcIndex].localToWorld;
+            nextPos           = mul(LtW, float4(localNextPos,  1)).xyz;
+            velocityBuffer[i] = mul(LtW, float4(localVelocity, 0)).xyz;
         }
     }
 
@@ -372,6 +393,6 @@ void Explode (uint3 id : SV_DispatchThreadID)
 
         float3 F = dir * f;
         float3 A = F / mass;
-        velocityBuffer[i] += A * CONSTANT_DELTA_TIME;
+        velocityBuffer[i] += A * deltaTime;
     }
 }

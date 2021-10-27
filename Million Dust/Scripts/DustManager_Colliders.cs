@@ -19,16 +19,29 @@ namespace Rito.MillionDust
         *                               Class Definitions
         ***********************************************************************/
         #region .
-        private class ColliderSet<TCol, TData> where TCol : DustCollider<TData>
+        private class ColliderSet
         {
+            private struct ColliderData
+            {
+                public Matrix4x4 localToWorld;
+                public Matrix4x4 worldToLocal;
+                public Vector3 scale;
+
+                public ColliderData(DustCollider collider)
+                {
+                    localToWorld = collider.transform.localToWorldMatrix;
+                    worldToLocal = collider.transform.worldToLocalMatrix;
+                    scale = collider.transform.lossyScale;
+                }
+            }
+
             /* Collider */
             private ComputeBuffer colliderBuffer;
-            private List<TCol> colliders;
+            private List<DustCollider> colliders;
 
             /* Data */
-            private TData[] dataArray;
+            private ColliderData[] dataArray;
             private int dataCount;
-            private int dataStride;
 
             /* Compute Shader, Compute Buffer */
             private ComputeShader computeShader;
@@ -36,15 +49,14 @@ namespace Rito.MillionDust
             private string bufferName;
             private string countVariableName;
 
-            public ColliderSet(ComputeShader computeShader, int shaderKernel, string bufferName, string countVariableName, int dataStride)
+            public ColliderSet(ComputeShader computeShader, int shaderKernel, string bufferName, string countVariableName)
             {
-                this.colliders = new List<TCol>(4);
-                this.dataArray = new TData[4];
+                this.colliders = new List<DustCollider>(4);
+                this.dataArray = new ColliderData[4];
                 this.computeShader = computeShader;
                 this.shaderKernel = shaderKernel;
                 this.bufferName = bufferName;
                 this.countVariableName = countVariableName;
-                this.dataStride = dataStride;
                 this.dataCount = 0;
 
                 colliderBuffer = new ComputeBuffer(1, 4); // 기본 값
@@ -65,7 +77,7 @@ namespace Rito.MillionDust
 
             private void ExpandDataArray()
             {
-                TData[] newArray = new TData[this.dataArray.Length * 2];
+                ColliderData[] newArray = new ColliderData[this.dataArray.Length * 2];
                 Array.Copy(this.dataArray, newArray, this.dataArray.Length);
                 this.dataArray = newArray;
             }
@@ -76,7 +88,7 @@ namespace Rito.MillionDust
                 ReleaseBuffer();
                 if (dataCount == 0) return;
 
-                colliderBuffer = new ComputeBuffer(dataCount, dataStride);
+                colliderBuffer = new ComputeBuffer(dataCount, sizeof(float) * 35);
                 computeShader.SetInt(countVariableName, dataCount);
                 UpdateColliderData();
             }
@@ -89,14 +101,14 @@ namespace Rito.MillionDust
 
                 for (int i = 0; i < dataCount; i++)
                 {
-                    dataArray[i] = colliders[i].Data;
+                    dataArray[i] = new ColliderData(colliders[i]);
                 }
 
                 colliderBuffer.SetData(dataArray, 0, 0, dataCount);
                 computeShader.SetBuffer(shaderKernel, bufferName, colliderBuffer);
             }
 
-            public void AddCollider(TCol collider)
+            public void AddCollider(DustCollider collider)
             {
                 if (colliders.Contains(collider)) return;
 
@@ -105,7 +117,7 @@ namespace Rito.MillionDust
                 ReallocateBuffer();
             }
 
-            public void RemoveCollider(TCol collider)
+            public void RemoveCollider(DustCollider collider)
             {
                 if (!colliders.Contains(collider)) return;
 
@@ -120,7 +132,7 @@ namespace Rito.MillionDust
         ***********************************************************************/
         #region .
         /// <summary> ColliderSet에 새로운 Collider 추가 </summary>
-        private void AddCollider<TCol, TData>(Func<ColliderSet<TCol, TData>> getter, TCol collider) where TCol : DustCollider<TData>
+        private void AddCollider(Func<ColliderSet> getter, DustCollider collider)
         {
             var colSet = getter();
 
@@ -135,14 +147,14 @@ namespace Rito.MillionDust
         }
 
         /// <summary> ColliderSet의 내부 컴퓨트 버퍼 갱신 </summary>
-        private void UpdateCollider<TCol, TData>(ColliderSet<TCol, TData> set) where TCol : DustCollider<TData>
+        private void UpdateCollider(ColliderSet set)
         {
             if (set != null)
                 set.UpdateColliderData();
         }
 
         /// <summary> ColliderSet에서 Collider 제거 </summary>
-        private void RemoveCollider<TCol, TData>(ColliderSet<TCol, TData> set, TCol collider) where TCol : DustCollider<TData>
+        private void RemoveCollider(ColliderSet set, DustCollider collider)
         {
             if (set != null)
                 set.RemoveCollider(collider);
