@@ -289,7 +289,7 @@ namespace Rito.MillionDust
             dustCompute.SetFloat("radius", dustRadius);
             dustCompute.SetFloat("mass", mass);
             dustCompute.SetFloat("drag", drag);
-            dustCompute.SetFloat("elasticity", elasticity);
+            dustCompute.SetFloat("bounciness", bounciness);
         }
 
         /// <summary> 청소기 커널 실행 </summary>

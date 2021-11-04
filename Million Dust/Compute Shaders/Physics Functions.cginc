@@ -80,16 +80,16 @@ float3 SphereCastToSphere(float3 A, float3 B, float3 S, float r1, float r2)
 // - velocity : 현재 이동 속도     [INOUT]
 // - sphere : 구체 중심 위치(xyz), 구체 반지름(w)
 // - dustRadius : 먼지 반지름
-// - elasticity : 탄성력 계수(0 ~ 1) : 충돌 시 보존되는 운동량 비율
+// - bounciness : 탄성력 계수(0 ~ 1) : 충돌 시 보존되는 운동량 비율
 void DustToSphereCollision(float3 cur, inout float3 next, inout float3 velocity,
-float dustRadius, float4 sphere, float elasticity, inout bool handled)
+float dustRadius, float4 sphere, float bounciness, inout bool handled)
 {
     // 충돌 시 먼지 위치
     float3 contactPos = SphereCastToSphere(cur, next, sphere.xyz, dustRadius, sphere.w);
 
     // Optional : 표면 달라붙지 않고 미끄러지기
     if(SqrMagnitude(cur - contactPos) < (sphere.w * sphere.w) * 1.1)
-        elasticity = 1;
+        bounciness = 1;
 
     // 충돌 지점의 노멀 벡터
     float3 contactNormal = (contactPos - sphere.xyz) / (dustRadius + sphere.w);
@@ -98,13 +98,13 @@ float dustRadius, float4 sphere, float elasticity, inout bool handled)
     float3 extraVec = next - contactPos;
 
     // 잉여 반사 벡터
-    float3 rfExtraVec = reflect(extraVec, contactNormal) * elasticity;
+    float3 rfExtraVec = reflect(extraVec, contactNormal) * bounciness;
 
     // 다음 프레임 위치 변경
     next = contactPos + rfExtraVec;
 
     // 속도 변경
-    velocity = reflect(velocity, contactNormal) * elasticity;
+    velocity = reflect(velocity, contactNormal) * bounciness;
 
     handled = true;
 }
@@ -158,9 +158,9 @@ float3 RaycastToPlaneYZ(float3 A, float3 B, float planeX)
 // - velocity   : 현재 이동 속도   [INOUT]
 // - dustRadius : 먼지 반지름
 // - box        : Box 영역 범위
-// - elasticity : 탄성력 계수(0 ~ 1) : 충돌 시 보존되는 운동량 비율
+// - bounciness : 탄성력 계수(0 ~ 1) : 충돌 시 보존되는 운동량 비율
 void DustToAABBCollision(float3 cur, inout float3 next, inout float3 velocity,
-float3 dustRadius, Bounds box, float elasticity, inout bool handled)
+float3 dustRadius, Bounds box, float bounciness, inout bool handled)
 {
     /*
         [흐름]
@@ -252,10 +252,10 @@ float3 dustRadius, Bounds box, float elasticity, inout bool handled)
     /* 최종 계산 */
     float rayLen = length(ray);
     float inLen  = length(contact - cur);                 // 입사 벡터 길이
-    float rfLen  = (rayLen - inLen) * elasticity;         // 반사 벡터 길이(탄성 적용)
+    float rfLen  = (rayLen - inLen) * bounciness;         // 반사 벡터 길이(탄성 적용)
     
     float3 rfRay = Reverse(ray, flag) * (rfLen / rayLen); // 반사 벡터
-    float3 rfVel = Reverse(velocity, flag) * elasticity;  // 반사 속도 벡터(탄성 적용)
+    float3 rfVel = Reverse(velocity, flag) * bounciness;  // 반사 속도 벡터(탄성 적용)
     
     /* 변경사항 적용 */
     next     = contact + rfRay;
@@ -269,9 +269,9 @@ float3 dustRadius, Bounds box, float elasticity, inout bool handled)
 // - next : 다음 프레임에서의 위치 [INOUT]
 // - velocity : 현재 이동 속도     [INOUT]
 // - dustRadius : 먼지의 크기
-// - elasticity : 탄성력 계수(0 ~ 1)
+// - bounciness : 탄성력 계수(0 ~ 1)
 // - bounds : 큐브 영역
-void ConfineWithinWorldBounds(float3 cur, inout float3 next, inout float3 velocity, float dustRadius, float elasticity, Bounds bounds)
+void ConfineWithinWorldBounds(float3 cur, inout float3 next, inout float3 velocity, float dustRadius, float bounciness, Bounds bounds)
 {
     // 먼지 크기 고려하기
     bounds.min += dustRadius;
@@ -376,10 +376,10 @@ void ConfineWithinWorldBounds(float3 cur, inout float3 next, inout float3 veloci
     float3 contact = RaycastToPlane(cur, next, plane); // 이동 벡터와 평면의 접점
     float  rayLen  = length(currToNext);               // 이동 벡터의 길이
     float  inLen   = length(cur - contact);            // 입사 벡터 길이
-    float  outLen  = (rayLen - inLen) * elasticity;    // 반사 벡터 길이(운동량 감소)
+    float  outLen  = (rayLen - inLen) * bounciness;    // 반사 벡터 길이(운동량 감소)
     float3 outVec  = rfRay * (outLen / rayLen);
 
     // Outputs
     next = contact + outVec;            // 다음 프레임 위치 변경
-    velocity = rfVelocity * elasticity; // 속도 변경
+    velocity = rfVelocity * bounciness; // 속도 변경
 }

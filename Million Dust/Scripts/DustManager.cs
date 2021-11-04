@@ -83,7 +83,7 @@ namespace Rito.MillionDust
         [SF] private float drag = 1f;           // (공기) 저항력
 
         [Range(0f, 1f)]
-        [SF] private float elasticity = 0.6f;   // 충돌 탄성력
+        [SF] private float bounciness = 0.6f;   // 충돌 탄성력
 
         [Header("Game")]
         [Range(0, 1f)]

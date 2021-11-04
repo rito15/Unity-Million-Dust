@@ -74,7 +74,7 @@ float3 gravity;      // 중력 가속도
 float radius;        // 먼지 반지름
 float mass;          // 질량
 float drag;          // (공기) 저항력
-float elasticity;    // 탄성력
+float bounciness;    // 탄성력
 
 /* Vacuum Cleaner */
 float cleanerSqrDist;       // 먼지 흡입 범위(반지름) - 제곱
@@ -189,7 +189,7 @@ void Update (uint3 id : SV_DispatchThreadID)
 
         if(SphereToSphereIntersection(float4(nextPos, radius), sphere))
         {
-            DustToSphereCollision(currPos, nextPos, velocityBuffer[i], radius, sphere, elasticity, collisionFlagBuffer[i]);
+            DustToSphereCollision(currPos, nextPos, velocityBuffer[i], radius, sphere, bounciness, collisionFlagBuffer[i]);
         }
     }
 
@@ -213,7 +213,7 @@ void Update (uint3 id : SV_DispatchThreadID)
             float3 localVelocity = mul(WtL, float4(velocityBuffer[i], 0)).xyz;
 
             // 박스 콜라이더의 로컬 스페이스에서 충돌 처리
-            DustToAABBCollision(localCurrPos, localNextPos, localVelocity, localDustRadius, box, elasticity, collisionFlagBuffer[i]);
+            DustToAABBCollision(localCurrPos, localNextPos, localVelocity, localDustRadius, box, bounciness, collisionFlagBuffer[i]);
             
             float4x4 LtW = boxColliderBuffer[bcIndex].localToWorld;
             nextPos           = mul(LtW, float4(localNextPos,  1)).xyz;
@@ -225,7 +225,7 @@ void Update (uint3 id : SV_DispatchThreadID)
     Bounds bounds;
     bounds.min = worldBoundsMin;
     bounds.max = worldBoundsMax;
-    ConfineWithinWorldBounds(currPos, nextPos, velocityBuffer[i], radius, elasticity, bounds);
+    ConfineWithinWorldBounds(currPos, nextPos, velocityBuffer[i], radius, bounciness, bounds);
 
     // 다음 위치 적용
     dustBuffer[i].position = nextPos;
