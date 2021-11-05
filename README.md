@@ -8,7 +8,7 @@
 
 - Compute Shader
 
-- <https://rito15.github.io/posts/unity-million-dust-simulation/>
+- <https://rito15.github.io/posts/unity-million-dust-simulation/> (KR)
 
 #
 
