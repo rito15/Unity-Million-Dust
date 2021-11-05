@@ -14,13 +14,13 @@
 
 <br>
 
-## 조작
+## User Input
 ### [1] Mouse
- - Move : Rotate Camera
- - Left Click : Use Current Tool
- - Right Click : Show/Hide Cursor
+ - `Move` : Rotate Camera
+ - `Left Click` : Use Current Tool
+ - `Right Click` : Show/Hide Cursor
 
-### [2] 키보드
+### [2] Keyboard
  - `WASD` : Move Player
  - `LShift` : Accelerate
  - `LCtrl` : Descend
@@ -45,7 +45,7 @@
 
 <br>
 
-## Emit Dust
+## Emit
 <img src="https://user-images.githubusercontent.com/42164422/135729248-ad069160-9fd7-40cd-8706-520829264ca8.gif" width=600/>
 
 
@@ -67,7 +67,7 @@
 
 <br>
 
-## Blow Wind
+## Blow
 <img src="https://user-images.githubusercontent.com/42164422/136384251-6e3abe3f-5734-4f14-aa64-a6c7260cb64c.gif" width=600/>
 
 <img src="https://user-images.githubusercontent.com/42164422/136384259-8ef62ab4-6359-4c30-b954-bec307bf7ceb.gif" width=600/>
