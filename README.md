@@ -14,7 +14,7 @@
 
 <br>
 
-## User Input
+## Controls
 ### [1] Mouse
  - `Move` : Rotate Camera
  - `Left Click` : Use Current Tool
